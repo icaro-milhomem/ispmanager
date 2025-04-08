@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -103,19 +102,26 @@ export default function CustomerDetails({ customer, onEdit, onDelete, onBack }) 
     try {
       // Buscar informações do plano
       const plans = await Plan.list();
-      const customerPlan = plans.find(p => p.code === customer.plan);
+      let customerPlan;
+      
+      // Verificar se o plano é um objeto ou uma string (código)
+      if (typeof customer.plan === 'object' && customer.plan !== null) {
+        customerPlan = customer.plan;
+      } else {
+        customerPlan = plans.find(p => p.code === customer.plan || p.id === customer.plan);
+      }
       
       if (!customerPlan) {
         console.error("Plano não encontrado:", {
           customerPlan: customer.plan,
-          availablePlans: plans.map(p => p.code)
+          availablePlans: plans.map(p => p.code || p.id)
         });
         throw new Error("Plano não encontrado");
       }
 
       const invoiceData = {
         customer_id: customer.id,
-        amount: customerPlan.monthly_price,
+        amount: customerPlan.price || customerPlan.monthly_price,
         due_date: new Date(Date.now() + (30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
         status: "pending",
         payment_method: customer.payment_method || "bank_slip",
@@ -148,12 +154,19 @@ export default function CustomerDetails({ customer, onEdit, onDelete, onBack }) 
     try {
       // Buscar informações do plano
       const plans = await Plan.list();
-      const customerPlan = plans.find(p => p.code === customer.plan);
+      let customerPlan;
+      
+      // Verificar se o plano é um objeto ou uma string (código)
+      if (typeof customer.plan === 'object' && customer.plan !== null) {
+        customerPlan = customer.plan;
+      } else {
+        customerPlan = plans.find(p => p.code === customer.plan || p.id === customer.plan);
+      }
       
       if (!customerPlan) {
         console.error("Plano não encontrado:", {
           customerPlan: customer.plan,
-          availablePlans: plans.map(p => p.code)
+          availablePlans: plans.map(p => p.code || p.id)
         });
         throw new Error("Plano não encontrado");
       }
@@ -168,8 +181,8 @@ export default function CustomerDetails({ customer, onEdit, onDelete, onBack }) 
 
         // Aplicar desconto de 50% nos 3 primeiros meses se promoção estiver ativa
         const amount = withPromo && i < 3 
-          ? customerPlan.monthly_price * 0.5 
-          : customerPlan.monthly_price;
+          ? (customerPlan.price || customerPlan.monthly_price) * 0.5 
+          : (customerPlan.price || customerPlan.monthly_price);
 
         const invoiceData = {
           customer_id: customer.id,
@@ -244,7 +257,9 @@ export default function CustomerDetails({ customer, onEdit, onDelete, onBack }) 
               {statusLabels[customer.status]}
             </Badge>
             <Badge variant="outline">
-              {planLabels[customer.plan] || customer.plan}
+              {typeof customer.plan === 'object' && customer.plan !== null 
+                ? customer.plan.name 
+                : planLabels[customer.plan] || customer.plan || "Sem plano"}
             </Badge>
             <Badge variant="outline" className="border-blue-200 text-blue-700">
               <Hash className="w-3 h-3 mr-1" />

@@ -245,35 +245,44 @@ export default function CustomersPage() {
     setLoading(true);
     setError('');
     try {
-      let savedCustomer;
+      console.log("Dados recebidos do formulário:", customerData);
+      
       if (selectedCustomer) {
-        savedCustomer = await Customer.update(selectedCustomer.id, customerData);
+        // Atualizando cliente existente
+        console.log("Atualizando cliente:", selectedCustomer.id);
+        await Customer.update(selectedCustomer.id, customerData);
         toast({
           title: "Cliente atualizado",
           description: "Os dados do cliente foram atualizados com sucesso"
         });
       } else {
-        // Já temos a geração do número de contrato no componente CustomerForm
-        savedCustomer = await Customer.create(customerData);
+        // Criando novo cliente
+        console.log("Criando novo cliente");
+        await Customer.create(customerData);
         toast({
           title: "Cliente cadastrado",
           description: "O novo cliente foi cadastrado com sucesso"
         });
       }
+      
+      // Fechar formulário e recarregar lista
       setShowForm(false);
       setSelectedCustomer(null);
       loadCustomers();
-      return savedCustomer;
     } catch (error) {
       console.error("Erro ao salvar cliente:", error);
-      setError(error.message || 'Erro ao salvar cliente.');
-      throw error;
+      toast({
+        title: "Erro ao salvar cliente",
+        description: error.message || "Não foi possível salvar os dados do cliente",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleEdit = (customer) => {
+    console.log("Editando cliente:", customer);
     setSelectedCustomer(customer);
     setShowForm(true);
     // Garantir que voltamos para a lista ao fechar o formulário
@@ -738,43 +747,8 @@ export default function CustomersPage() {
           {showForm && (
             <CustomerForm
               customer={selectedCustomer}
-              onSubmit={async (customerData) => {
-                try {
-                  // Garantir que temos os dados corretos
-                  const dataToSubmit = {
-                    ...customerData
-                  };
-
-                  console.log("Enviando dados para o servidor:", dataToSubmit);
-
-                  if (selectedCustomer) {
-                    const updatedCustomer = await Customer.update(selectedCustomer.id, dataToSubmit);
-                    console.log("Cliente atualizado:", updatedCustomer);
-                    toast({
-                      title: "Cliente atualizado",
-                      description: "Os dados do cliente foram atualizados com sucesso"
-                    });
-                  } else {
-                    const newCustomer = await Customer.create(dataToSubmit);
-                    console.log("Novo cliente criado:", newCustomer);
-                    toast({
-                      title: "Cliente cadastrado",
-                      description: "O novo cliente foi cadastrado com sucesso"
-                    });
-                  }
-                  setShowForm(false);
-                  setSelectedCustomer(null);
-                  setActiveTab("all");
-                  await loadCustomers(); // Recarregar clientes para obter dados atualizados
-                } catch (error) {
-                  console.error("Erro ao salvar cliente:", error);
-                  toast({
-                    title: "Erro ao salvar cliente",
-                    description: error.message || "Não foi possível salvar os dados do cliente",
-                    variant: "destructive"
-                  });
-                }
-              }}
+              initialData={selectedCustomer ? null : initialCustomerData}
+              onSubmit={handleSubmit}
               onCancel={() => {
                 setShowForm(false);
                 setSelectedCustomer(null);

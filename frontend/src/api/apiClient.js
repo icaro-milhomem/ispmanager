@@ -132,14 +132,27 @@ export const createEntityClient = (entityPath) => {
     // Atualizar um item existente
     update: async (id, data) => {
       try {
+        console.log(`Enviando requisição de atualização para ${entityPath}/${id}:`, data);
+        
         const response = await fetch(`${API_BASE_URL}/api/${entityPath}/${id}`, {
           method: 'PUT',
           headers: getHeaders(),
           body: JSON.stringify(data)
         });
         
+        console.log(`Resposta da atualização ${entityPath}/${id}:`, response.status, response.statusText);
+        
         if (!response.ok) {
-          throw new Error(`Error updating ${entityPath}: ${response.statusText}`);
+          // Tentar obter detalhes do erro
+          let errorDetails = '';
+          try {
+            const errorBody = await response.json();
+            errorDetails = errorBody.message || response.statusText;
+          } catch (e) {
+            errorDetails = response.statusText;
+          }
+          
+          throw new Error(`Error updating ${entityPath}: ${errorDetails}`);
         }
         
         return await response.json();

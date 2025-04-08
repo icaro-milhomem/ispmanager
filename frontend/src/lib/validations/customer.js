@@ -1,0 +1,48 @@
+import * as z from "zod";
+
+export const customerSchema = z.object({
+  name: z.string().min(1, { message: "Nome é obrigatório" }),
+  email: z.string().email({ message: "Email inválido" }),
+  document_type: z.enum(["CPF", "CNPJ"]),
+  document: z.string().min(1, { message: "Documento é obrigatório" }),
+  phone: z.string().min(1, { message: "Telefone é obrigatório" }),
+  contract_number: z.string().optional(),
+  installation_address: z.object({
+    street: z.string().min(1, { message: "Endereço é obrigatório" }),
+    number: z.string().min(1, { message: "Número é obrigatório" }),
+    complement: z.string().optional(),
+    neighborhood: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    postal_code: z.string().optional(),
+  }),
+  billing_address_same: z.boolean().default(true),
+  billing_address: z.object({
+    street: z.string().optional(),
+    number: z.string().optional(),
+    complement: z.string().optional(),
+    neighborhood: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    postal_code: z.string().optional(),
+  }),
+  plan_id: z.string().optional(),
+  installation_fee: z.number().optional().default(0),
+  due_day: z.number().min(1).max(28).default(10),
+  payment_method: z.enum(["BANK_SLIP", "CREDIT_CARD", "PIX"]).default("BANK_SLIP"),
+  status: z.enum(["ACTIVE", "PENDING", "SUSPENDED", "INACTIVE"]).default("PENDING"),
+  notes: z.string().optional(),
+  coordinates: z.object({
+    latitude: z.number().nullable().optional(),
+    longitude: z.number().nullable().optional(),
+  }).optional(),
+  bandwidth_limit: z.object({
+    download: z.number().optional().default(100),
+    upload: z.number().optional().default(50),
+  }).optional(),
+  whatsapp: z.string().optional(),
+  pppoe_username: z.string().optional(),
+  pppoe_password: z.string().optional(),
+  ip_address: z.string().optional(),
+  installation_date: z.string().optional(),
+}); 
