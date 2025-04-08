@@ -1,0 +1,481 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String          @id @default(uuid())
+  name           String
+  email          String          @unique
+  password       String
+  role           Role            @default(STAFF)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  supportTickets SupportTicket[]
+
+  @@map("users")
+}
+
+model Customer {
+  id                 String          @id @default(uuid())
+  full_name          String
+  contract_number    String?         @unique
+  document_type      DocumentType    @default(CPF)
+  document_number    String          @unique
+  email              String          @unique
+  phone              String
+  whatsapp           String?
+  status             CustomerStatus  @default(PENDING)
+  address            String
+  address_number     String?
+  address_complement String?
+  neighborhood       String?
+  city               String?
+  state              String?
+  zip_code           String?
+  latitude           Float?
+  longitude          Float?
+  installation_date  DateTime?
+  pppoe_username     String?
+  pppoe_password     String?
+  ip_address         String?
+  download_limit     Float?
+  upload_limit       Float?
+  due_day            Int             @default(10)
+  payment_method     PaymentMethod   @default(BANK_SLIP)
+  planId             String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  contracts          Contract[]
+  plan               Plan?           @relation(fields: [planId], references: [id])
+  invoices           Invoice[]
+  supportTickets     SupportTicket[]
+
+  @@map("customers")
+}
+
+model Plan {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  description String?
+  price       Float
+  download    Float      @default(10)
+  upload      Float      @default(5)
+  data_limit  Int?
+  status      PlanStatus @default(ACTIVE)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  customers   Customer[]
+
+  @@map("plans")
+}
+
+model Invoice {
+  id          String        @id @default(uuid())
+  number      String        @unique
+  customerId  String
+  amount      Float
+  dueDate     DateTime
+  paymentDate DateTime?
+  description String?
+  status      InvoiceStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  customer    Customer      @relation(fields: [customerId], references: [id])
+  payments    Payment[]
+
+  @@map("invoices")
+}
+
+model Payment {
+  id          String        @id @default(uuid())
+  invoiceId   String
+  amount      Float
+  method      PaymentMethod
+  date        DateTime
+  transaction String?
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  invoice     Invoice       @relation(fields: [invoiceId], references: [id])
+
+  @@map("payments")
+}
+
+model SupportTicket {
+  id          String           @id @default(uuid())
+  customerId  String
+  userId      String?
+  title       String
+  description String
+  status      TicketStatus     @default(OPEN)
+  priority    Priority         @default(MEDIUM)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  closedAt    DateTime?
+  customer    Customer         @relation(fields: [customerId], references: [id])
+  user        User?            @relation(fields: [userId], references: [id])
+  responses   TicketResponse[]
+
+  @@map("support_tickets")
+}
+
+model TicketResponse {
+  id             String        @id @default(uuid())
+  ticketId       String
+  message        String
+  respondentName String
+  isCustomer     Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  ticket         SupportTicket @relation(fields: [ticketId], references: [id])
+
+  @@map("ticket_responses")
+}
+
+model Contract {
+  id             String         @id @default(uuid())
+  customerId     String
+  number         String         @unique
+  startDate      DateTime
+  endDate        DateTime?
+  status         ContractStatus @default(ACTIVE)
+  document_url   String?
+  signature_date DateTime?
+  terms          String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  customer       Customer       @relation(fields: [customerId], references: [id])
+
+  @@map("contracts")
+}
+
+model NetworkNode {
+  id          String     @id @default(uuid())
+  name        String
+  type        NodeType
+  ip_address  String
+  mac_address String?
+  location    String?
+  status      NodeStatus @default(ACTIVE)
+  notes       String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Equipment {
+  id        String          @id @default(uuid())
+  name      String
+  brand     String
+  model     String
+  serial    String?
+  status    EquipmentStatus @default(AVAILABLE)
+  location  String?
+  notes     String?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model SystemConfig {
+  id                     String   @id @default(uuid())
+  company_name           String
+  company_logo_url       String?
+  admin_email            String
+  smtp_host              String?
+  smtp_port              Int?
+  smtp_user              String?
+  smtp_pass              String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  language               String?  @default("pt-BR")
+  login_background_color String?
+  login_button_color     String?
+  login_text_color       String?
+  theme_primary_color    String?
+  theme_secondary_color  String?
+  timezone               String?  @default("America/Sao_Paulo")
+}
+
+model NetworkIssue {
+  id                 String    @id @default(uuid())
+  title              String
+  description        String
+  type               String
+  status             String    @default("open")
+  priority           String    @default("medium")
+  affected_customers String[]
+  created_date       DateTime  @default(now())
+  resolved_date      DateTime?
+  resolution         String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+model EquipmentBrand {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  website     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Vehicle {
+  id           String       @id @default(uuid())
+  plate        String       @unique
+  model        String
+  brand        String
+  year         Int
+  type         String
+  status       String       @default("active")
+  mileage      Float        @default(0)
+  fuel_type    String
+  driver_id    String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  notes        String?
+  fuel_refills FuelRefill[]
+  mileage_logs MileageLog[]
+  driver       Driver?      @relation(fields: [driver_id], references: [id])
+}
+
+model Driver {
+  id               String    @id @default(uuid())
+  name             String
+  document         String    @unique
+  license_number   String    @unique
+  license_category String
+  license_expiry   DateTime
+  phone            String?
+  status           String    @default("active")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  address          String?
+  notes            String?
+  vehicles         Vehicle[]
+}
+
+model FuelRefill {
+  id              String   @id @default(uuid())
+  vehicle_id      String
+  date            DateTime
+  amount_liters   Float
+  price_per_liter Float
+  total_price     Float
+  mileage         Float
+  fuel_type       String
+  gas_station     String?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  vehicle         Vehicle  @relation(fields: [vehicle_id], references: [id])
+}
+
+model MileageLog {
+  id              String   @id @default(uuid())
+  vehicle_id      String
+  date            DateTime
+  initial_mileage Float
+  final_mileage   Float
+  distance        Float
+  purpose         String
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  vehicle         Vehicle  @relation(fields: [vehicle_id], references: [id])
+}
+
+model IPPool {
+  id             String         @id @default(uuid())
+  name           String
+  subnet         String
+  mask           String
+  gateway        String
+  dns_primary    String?
+  dns_secondary  String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  ip_assignments IPAssignment[]
+}
+
+model IPAssignment {
+  id              String    @id @default(uuid())
+  ip_pool_id      String
+  ip              String
+  status          String    @default("available")
+  customer_name   String?
+  customer_id     String?
+  assignment_type String?
+  mac_address     String?
+  last_seen       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  ip_pool         IPPool    @relation(fields: [ip_pool_id], references: [id])
+
+  @@unique([ip_pool_id, ip])
+}
+
+model PaymentGateway {
+  id                String   @id @default(uuid())
+  name              String
+  provider          String
+  api_key           String
+  api_secret        String?
+  is_active         Boolean  @default(true)
+  sandbox_mode      Boolean  @default(false)
+  webhook_url       String?
+  return_url        String?
+  supported_methods String[]
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model BillingSchedule {
+  id             String    @id @default(uuid())
+  name           String
+  description    String?
+  active         Boolean   @default(true)
+  frequency      String
+  generate_day   Int
+  due_day_offset Int       @default(15)
+  send_email     Boolean   @default(true)
+  email_template String?
+  last_run       DateTime?
+  next_run       DateTime?
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model RouterIntegration {
+  id                String    @id @default(uuid())
+  name              String
+  type              String
+  host              String
+  port              Int
+  integration_method String
+  username          String
+  password          String?
+  api_key           String?
+  status            String    @default("active")
+  is_primary        Boolean   @default(false)
+  last_sync         DateTime?
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model ConfigEntry {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  category    String   @default("system")
+  is_secret   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model InventoryItem {
+  id              String   @id @default(uuid())
+  name            String
+  description     String?
+  category        String
+  quantity        Int      @default(0)
+  unit_price      Float
+  status          String   @default("active")
+  supplier        String?
+  location        String?
+  serial_number   String?
+  purchase_date   DateTime?
+  warranty_expiry DateTime?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  STAFF
+  TECHNICIAN
+}
+
+enum DocumentType {
+  CPF
+  CNPJ
+}
+
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum PlanStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  CANCELED
+  OVERDUE
+}
+
+enum PaymentMethod {
+  BANK_SLIP
+  CREDIT_CARD
+  PIX
+  CASH
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ContractStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+  CANCELED
+}
+
+enum NodeType {
+  ROUTER
+  SWITCH
+  ACCESS_POINT
+  ONU
+  OLT
+  SERVER
+}
+
+enum NodeStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+  PROBLEM
+}
+
+enum EquipmentStatus {
+  AVAILABLE
+  IN_USE
+  MAINTENANCE
+  DEFECTIVE
+}
