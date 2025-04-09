@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link, Outlet } from "react-router-dom";
 // import { createPageUrl } from "@/utils";
-import { SystemConfig, User } from "../api/entities";
+import { User } from "../api/entities";
+import { SystemConfigClient } from "../api/systemConfigClient";
 import {
   LayoutDashboard,
   Users,
@@ -86,9 +87,10 @@ export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [systemConfig, setSystemConfig] = useState({
-    company_name: "",
+    company_name: "ISP Manager",
     company_logo_url: ""
   });
+  const [configLoading, setConfigLoading] = useState(true);
 
   useEffect(() => {
     // Permitir visualização da fatura sem autenticação
@@ -134,20 +136,32 @@ export default function Layout({ children, currentPageName }) {
       fetchCurrentUser();
     }
 
-    if (["Settings", "Dashboard", "SystemLogin"].includes(currentPageName)) {
-      const loadSystemConfig = async () => {
-        try {
-          const configs = await SystemConfig.list();
-          if (configs.length > 0) {
-            setSystemConfig(configs[0]);
-          }
-        } catch (error) {
-          console.error("Erro ao carregar configurações:", error);
+    // Carregar configurações do sistema para todas as páginas
+    const loadSystemConfig = async () => {
+      try {
+        setConfigLoading(true);
+        const configs = await SystemConfigClient.list();
+        console.log("Configurações carregadas no Layout:", configs);
+        
+        if (configs && Array.isArray(configs) && configs.length > 0) {
+          const config = configs[0];
+          setSystemConfig({
+            company_name: config.company_name || "ISP Manager",
+            company_logo_url: config.company_logo_url || "",
+            login_background_color: config.login_background_color || "#f9fafb",
+            login_text_color: config.login_text_color || "#1f2937",
+            login_button_color: config.login_button_color || "#2563eb"
+          });
+          console.log("Configurações aplicadas no Layout:", config);
         }
-      };
+      } catch (error) {
+        console.error("Erro ao carregar configurações:", error);
+      } finally {
+        setConfigLoading(false);
+      }
+    };
 
-      loadSystemConfig();
-    }
+    loadSystemConfig();
   }, [currentPageName]);
 
   const handleLogout = () => {
@@ -359,130 +373,150 @@ export default function Layout({ children, currentPageName }) {
   );
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="min-h-screen flex flex-col">
       <style>{themeStyles}</style>
       
-      {/* Sidebar */}
-      <div 
-        className={`
-          fixed inset-y-0 left-0 z-50 w-64 transform bg-white shadow-lg transition-transform duration-300 ease-in-out 
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
-          md:relative md:translate-x-0
-        `}
-      >
-        <div className="flex flex-col items-center justify-between p-4 border-b bg-white">
-          <div className="flex flex-col items-center w-full">
-            {systemConfig.company_logo_url ? (
-              <img
-                src={systemConfig.company_logo_url}
-                alt="Logo"
-                className="h-12 w-auto mb-2"
-              />
-            ) : (
-              <h1 className="text-xl font-bold text-blue-600">ISP Manager</h1>
-            )}
-            {systemConfig.company_name && (
-              <p className="text-sm text-gray-600 text-center">
-                {systemConfig.company_name}
-              </p>
-            )}
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden text-gray-500 hover:text-gray-700"
-            onClick={() => setSidebarOpen(false)}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="flex h-16 items-center px-4 md:px-6">
+          <button 
+            onClick={() => setSidebarOpen(!sidebarOpen)} 
+            className="mr-4 inline-flex md:hidden"
           >
-            <X className="h-6 w-6" />
-          </Button>
-        </div>
-
-        {currentUser && (
-          <div className="p-4 border-b bg-gray-50">
-            <p className="font-medium text-gray-800">{currentUser.full_name}</p>
-            <p className="text-sm text-gray-500">{currentUser.role === "admin" ? "Administrador" : currentUser.role}</p>
+            {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+          
+          <div className="flex items-center">
+            <h1 className="text-xl font-bold">{systemConfig.company_name || "ISP Manager"}</h1>
           </div>
-        )}
-
-        <nav className="p-4 overflow-y-auto bg-white">
-          {menuItems.map((item) => {
-            if (currentUser?.role === 'admin' || (!item.module || !item.permission)) {
-              return (
-                <Link
-                  key={item.page}
-                  to={createPageUrl(item.page)}
-                  className={`flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors ${
-                    currentPageName === item.page 
-                      ? "bg-blue-50 text-blue-600 font-medium" 
-                      : ""
-                  }`}
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <item.icon className={`w-5 h-5 ${item.iconColor}`} />
-                  {item.label}
-                </Link>
-              );
-            }
-            return (
-              <PermissionCheck
-                key={item.page}
-                module={item.module}
-                permission={item.permission}
-                currentUserData={currentUser}
-              >
-                <Link
-                  to={createPageUrl(item.page)}
-                  className={`flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors ${
-                    currentPageName === item.page 
-                      ? "bg-blue-50 text-blue-600 font-medium" 
-                      : ""
-                  }`}
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <item.icon className={`w-5 h-5 ${item.iconColor}`} />
-                  {item.label}
-                </Link>
-              </PermissionCheck>
-            );
-          })}
-
-          {isAuthenticated() && currentUser && (
-            <div className="mt-4 pt-4 border-t">
-              <Button
-                variant="ghost"
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 w-full justify-start"
-                onClick={handleLogout}
-              >
-                <LogOut className="w-5 h-5 mr-2" />
-                Sair
-              </Button>
+          
+          <div className="ml-auto flex items-center gap-4">
+            <div className="hidden md:flex items-center">
+              <span className="text-sm font-medium mr-2">
+                {currentUser?.full_name || "Usuário"}
+              </span>
+              <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded">
+                {currentUser?.role === "admin" ? "Admin" : "Usuário"}
+              </span>
             </div>
-          )}
-        </nav>
-      </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="rounded-full"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </header>
       
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-x-auto">
-        {/* Header */}
-        <header className="bg-white shadow-sm z-10">
-          {isAuthenticated() && (
-            <div className="md:hidden bg-white border-b px-4 py-3 flex justify-between items-center">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSidebarOpen(true)}
-                className="text-gray-700"
-              >
-                <Menu className="h-6 w-6" />
-              </Button>
+      <div className="flex flex-1">
+        {/* Sidebar */}
+        <div 
+          className={`
+            fixed inset-y-0 left-0 z-50 w-64 transform bg-white shadow-lg transition-transform duration-300 ease-in-out 
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
+            md:relative md:translate-x-0
+          `}
+        >
+          <div className="flex flex-col items-center justify-between p-4 border-b bg-white">
+            <div className="flex flex-col items-center w-full">
+              {systemConfig.company_logo_url ? (
+                <img
+                  src={systemConfig.company_logo_url}
+                  alt="Logo"
+                  className="h-12 w-auto mb-2"
+                />
+              ) : (
+                <h1 className="text-xl font-bold text-blue-600">ISP Manager</h1>
+              )}
+              {systemConfig.company_name && (
+                <p className="text-sm text-gray-600 text-center">
+                  {systemConfig.company_name}
+                </p>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden text-gray-500 hover:text-gray-700"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <X className="h-6 w-6" />
+            </Button>
+          </div>
+
+          {currentUser && (
+            <div className="p-4 border-b bg-gray-50">
+              <p className="font-medium text-gray-800">{currentUser.full_name}</p>
+              <p className="text-sm text-gray-500">{currentUser.role === "admin" ? "Administrador" : currentUser.role}</p>
             </div>
           )}
-        </header>
+
+          <nav className="p-4 overflow-y-auto bg-white">
+            {menuItems.map((item) => {
+              if (currentUser?.role === 'admin' || (!item.module || !item.permission)) {
+                return (
+                  <Link
+                    key={item.page}
+                    to={createPageUrl(item.page)}
+                    className={`flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors ${
+                      currentPageName === item.page 
+                        ? "bg-blue-50 text-blue-600 font-medium" 
+                        : ""
+                    }`}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <item.icon className={`w-5 h-5 ${item.iconColor}`} />
+                    {item.label}
+                  </Link>
+                );
+              }
+              return (
+                <PermissionCheck
+                  key={item.page}
+                  module={item.module}
+                  permission={item.permission}
+                  currentUserData={currentUser}
+                >
+                  <Link
+                    to={createPageUrl(item.page)}
+                    className={`flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors ${
+                      currentPageName === item.page 
+                        ? "bg-blue-50 text-blue-600 font-medium" 
+                        : ""
+                    }`}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <item.icon className={`w-5 h-5 ${item.iconColor}`} />
+                    {item.label}
+                  </Link>
+                </PermissionCheck>
+              );
+            })}
+
+            {isAuthenticated() && currentUser && (
+              <div className="mt-4 pt-4 border-t">
+                <Button
+                  variant="ghost"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 w-full justify-start"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="w-5 h-5 mr-2" />
+                  Sair
+                </Button>
+              </div>
+            )}
+          </nav>
+        </div>
         
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4">
-          {children || <Outlet />}
-        </main>
+        {/* Main content */}
+        <div className="flex-1 flex flex-col overflow-x-auto">
+          {/* Page content */}
+          <main className="flex-1 overflow-y-auto p-4">
+            {children || <Outlet />}
+          </main>
+        </div>
       </div>
     </div>
   );

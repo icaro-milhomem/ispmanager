@@ -23,7 +23,6 @@ export const createEntityClient = (entityPath) => {
     // Listar todos os itens com paginação e filtros
     list: async (params = {}) => {
       try {
-        console.log(`[API Client] Iniciando requisição LIST para ${entityPath}`);
         const queryParams = new URLSearchParams();
         
         // Adicionar parâmetros de paginação
@@ -40,7 +39,9 @@ export const createEntityClient = (entityPath) => {
         const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
         const url = `${API_BASE_URL}/api/${entityPath}${queryString}`;
         
-        console.log(`[API Client] Fazendo requisição GET para: ${url}`);
+        if (ENABLE_REQUEST_LOGGING) {
+          console.log(`Fazendo requisição GET para: ${url}`);
+        }
         
         const headers = getHeaders();
         
@@ -49,23 +50,12 @@ export const createEntityClient = (entityPath) => {
           headers: headers
         });
         
-        console.log(`[API Client] Resposta recebida para ${entityPath}, status: ${response.status}`);
-        
         if (!response.ok) {
-          console.error(`[API Client] Erro na resposta: Status ${response.status} - ${response.statusText}`);
+          console.error(`Erro na resposta: Status ${response.status} - ${response.statusText}`);
           throw new Error(`Error fetching ${entityPath}: ${response.statusText}`);
         }
         
-        const contentType = response.headers.get('content-type');
-        console.log(`[API Client] Content-Type da resposta: ${contentType}`);
-        
-        if (!contentType || !contentType.includes('application/json')) {
-          console.warn(`[API Client] Resposta não é do tipo JSON: ${contentType}`);
-          return [];
-        }
-        
         const data = await response.json();
-        console.log(`[API Client] Dados recebidos para ${entityPath}:`, data);
         
         // Extrair a lista de itens da resposta, se estiver dentro de uma propriedade
         // Por exemplo, se a API retornar { customers: [...], pagination: {...} }
@@ -74,56 +64,26 @@ export const createEntityClient = (entityPath) => {
                                   entityPath;
         
         const pluralEntityName = `${singularEntityName}s`;
-        console.log(`[API Client] Nomes das entidades: singular=${singularEntityName}, plural=${pluralEntityName}`);
         
         // Se a resposta for um array, retorne-a diretamente
         if (Array.isArray(data)) {
-          console.log(`[API Client] Resposta é um array, retornando diretamente. Tamanho: ${data.length}`);
           return data;
         }
         
         // Se a resposta contém os itens em uma propriedade com o nome plural da entidade
         if (data[pluralEntityName]) {
-          console.log(`[API Client] Encontrada propriedade '${pluralEntityName}' na resposta. Tamanho: ${data[pluralEntityName].length}`);
           return params.includePagination ? data : data[pluralEntityName];
         }
         
         // Se a resposta contém os itens em uma propriedade 'data'
         if (data.data) {
-          console.log(`[API Client] Encontrada propriedade 'data' na resposta. Tamanho: ${Array.isArray(data.data) ? data.data.length : 'não é array'}`);
           return params.includePagination ? data : data.data;
         }
         
-        // Verificar se a propriedade existe com o primeiro caractere em maiúsculo
-        const capitalizedPluralName = pluralEntityName.charAt(0).toUpperCase() + pluralEntityName.slice(1);
-        if (data[capitalizedPluralName]) {
-          console.log(`[API Client] Encontrada propriedade '${capitalizedPluralName}' na resposta. Tamanho: ${data[capitalizedPluralName].length}`);
-          return params.includePagination ? data : data[capitalizedPluralName];
-        }
-        
-        // Tentar encontrar qualquer propriedade que possa ser um array na resposta
-        const arrayProps = Object.keys(data).filter(key => Array.isArray(data[key]));
-        if (arrayProps.length > 0) {
-          console.log(`[API Client] Encontrada propriedade array '${arrayProps[0]}' na resposta. Tamanho: ${data[arrayProps[0]].length}`);
-          return params.includePagination ? data : data[arrayProps[0]];
-        }
-        
         // Se não for nenhum dos casos acima, retorna o objeto completo
-        console.log(`[API Client] Nenhuma estrutura reconhecida, retornando objeto completo`);
         return data;
       } catch (error) {
-        console.error(`[API Client] Erro em list ${entityPath}:`, error);
-        
-        // Adicionar tratativa específica para erros de conexão
-        if (error.message && (
-            error.message.includes('Failed to fetch') || 
-            error.message.includes('Network Error') ||
-            error.message.includes('NetworkError')
-        )) {
-          console.error(`[API Client] Erro de conexão detectado para ${entityPath}`);
-          throw new Error(`Erro de conexão com o servidor. Verifique se o backend está em execução.`);
-        }
-        
+        console.error(`Error in list ${entityPath}:`, error);
         throw error;
       }
     },

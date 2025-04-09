@@ -37,11 +37,18 @@ export const createConfig = async (req: Request, res: Response) => {
   const { 
     company_name, 
     company_logo_url,
+    company_address,
+    company_phone,
+    company_email,
+    company_website,
     admin_email,
     smtp_host,
     smtp_port,
     smtp_user,
-    smtp_pass
+    smtp_pass,
+    login_background_color,
+    login_text_color,
+    login_button_color
   } = req.body;
   
   try {
@@ -58,11 +65,18 @@ export const createConfig = async (req: Request, res: Response) => {
       data: {
         company_name,
         company_logo_url,
+        company_address,
+        company_phone,
+        company_email,
+        company_website,
         admin_email,
         smtp_host,
         smtp_port,
         smtp_user,
-        smtp_pass
+        smtp_pass,
+        login_background_color,
+        login_text_color,
+        login_button_color
       }
     });
     
@@ -82,11 +96,18 @@ export const updateConfig = async (req: Request, res: Response) => {
   const { 
     company_name, 
     company_logo_url,
+    company_address,
+    company_phone,
+    company_email,
+    company_website,
     admin_email,
     smtp_host,
     smtp_port,
     smtp_user,
-    smtp_pass
+    smtp_pass,
+    login_background_color,
+    login_text_color,
+    login_button_color
   } = req.body;
   
   try {
@@ -105,11 +126,18 @@ export const updateConfig = async (req: Request, res: Response) => {
       data: {
         company_name,
         company_logo_url,
+        company_address,
+        company_phone,
+        company_email,
+        company_website,
         admin_email,
         smtp_host,
         smtp_port,
         smtp_user,
-        smtp_pass
+        smtp_pass,
+        login_background_color,
+        login_text_color,
+        login_button_color
       }
     });
     

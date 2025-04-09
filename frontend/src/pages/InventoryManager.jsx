@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Equipment } from "@/api/entities";
 import { EquipmentBrand } from "@/api/entities";
@@ -831,7 +830,7 @@ export default function InventoryManager() {
       </Tabs>
 
       <Dialog open={showBrandForm} onOpenChange={setShowBrandForm}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[450px]">
           <DialogHeader>
             <DialogTitle>{selectedBrand ? "Editar Marca" : "Nova Marca"}</DialogTitle>
             <DialogDescription>
@@ -840,8 +839,8 @@ export default function InventoryManager() {
           </DialogHeader>
 
           <form onSubmit={handleBrandSubmit}>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
+            <div className="grid gap-3 py-3">
+              <div className="grid grid-cols-4 items-center gap-3">
                 <Label htmlFor="name" className="text-right">
                   Nome
                 </Label>
@@ -853,7 +852,7 @@ export default function InventoryManager() {
                   required
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
+              <div className="grid grid-cols-4 items-center gap-3">
                 <Label htmlFor="description" className="text-right">
                   Descrição
                 </Label>
@@ -864,7 +863,7 @@ export default function InventoryManager() {
                   className="col-span-3"
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
+              <div className="grid grid-cols-4 items-center gap-3">
                 <Label htmlFor="website" className="text-right">
                   Website
                 </Label>
@@ -876,7 +875,7 @@ export default function InventoryManager() {
                   placeholder="https://"
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
+              <div className="grid grid-cols-4 items-center gap-3">
                 <Label htmlFor="support_contact" className="text-right">
                   Contato
                 </Label>
@@ -889,7 +888,7 @@ export default function InventoryManager() {
                 />
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="mt-3">
               <Button type="button" variant="outline" onClick={() => setShowBrandForm(false)}>
                 Cancelar
               </Button>
@@ -902,17 +901,19 @@ export default function InventoryManager() {
       </Dialog>
 
       <Dialog open={showEquipmentForm} onOpenChange={setShowEquipmentForm}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{selectedEquipment ? "Editar Equipamento" : "Novo Equipamento"}</DialogTitle>
             <DialogDescription>
-              Cadastre equipamentos em seu estoque.
+              {selectedEquipment 
+                ? "Edite as informações do equipamento existente" 
+                : "Preencha as informações para cadastrar um novo equipamento"}
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleEquipmentSubmit}>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nome do Equipamento</Label>
                   <Input
@@ -940,7 +941,9 @@ export default function InventoryManager() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="brand_id">Marca</Label>
                   <Select name="brand_id" defaultValue={selectedEquipment?.brand_id || ""}>
@@ -966,7 +969,9 @@ export default function InventoryManager() {
                     required
                   />
                 </div>
-                
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="serial_number">Número de Série</Label>
                   <Input
@@ -985,17 +990,19 @@ export default function InventoryManager() {
                     defaultValue={selectedEquipment?.barcode || ""}
                   />
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="mac_address">MAC Address</Label>
-                  <Input
-                    id="mac_address"
-                    name="mac_address"
-                    defaultValue={selectedEquipment?.mac_address || ""}
-                    placeholder="XX:XX:XX:XX:XX:XX"
-                  />
-                </div>
-                
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="mac_address">MAC Address</Label>
+                <Input
+                  id="mac_address"
+                  name="mac_address"
+                  defaultValue={selectedEquipment?.mac_address || ""}
+                  placeholder="XX:XX:XX:XX:XX:XX"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="purchase_price">Preço de Compra (R$)</Label>
                   <Input
@@ -1008,6 +1015,19 @@ export default function InventoryManager() {
                   />
                 </div>
                 
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">Quantidade</Label>
+                  <Input
+                    id="quantity"
+                    name="quantity"
+                    type="number"
+                    min="1"
+                    defaultValue="1"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="purchase_date">Data de Compra</Label>
                   <Input
@@ -1027,29 +1047,16 @@ export default function InventoryManager() {
                     defaultValue={selectedEquipment?.warranty_expires || ""}
                   />
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="location">Localização</Label>
-                  <Input
-                    id="location"
-                    name="location"
-                    defaultValue={selectedEquipment?.location || ""}
-                    placeholder="Prateleira, depósito, etc."
-                  />
-                </div>
-                
-                {!selectedEquipment && (
-                  <div className="space-y-2">
-                    <Label htmlFor="quantity">Quantidade</Label>
-                    <Input
-                      id="quantity"
-                      name="quantity"
-                      type="number"
-                      min="1"
-                      defaultValue="1"
-                    />
-                  </div>
-                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="location">Localização</Label>
+                <Input
+                  id="location"
+                  name="location"
+                  defaultValue={selectedEquipment?.location || ""}
+                  placeholder="Prateleira, depósito, etc."
+                />
               </div>
               
               <div className="space-y-2">
@@ -1058,7 +1065,7 @@ export default function InventoryManager() {
                   id="description"
                   name="description"
                   defaultValue={selectedEquipment?.description || ""}
-                  rows={2}
+                  rows={3}
                 />
               </div>
               
@@ -1068,7 +1075,7 @@ export default function InventoryManager() {
                   id="notes"
                   name="notes"
                   defaultValue={selectedEquipment?.notes || ""}
-                  rows={2}
+                  rows={3}
                 />
               </div>
             </div>
@@ -1076,7 +1083,7 @@ export default function InventoryManager() {
               <Button type="button" variant="outline" onClick={() => setShowEquipmentForm(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading} className="bg-blue-600">
                 {loading ? "Salvando..." : selectedEquipment ? "Atualizar" : "Cadastrar"}
               </Button>
             </DialogFooter>
@@ -1085,7 +1092,7 @@ export default function InventoryManager() {
       </Dialog>
 
       <Dialog open={showMacCaptureForm} onOpenChange={setShowMacCaptureForm}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Associar Equipamento ao Cliente</DialogTitle>
             <DialogDescription>
@@ -1094,8 +1101,8 @@ export default function InventoryManager() {
           </DialogHeader>
 
           <form onSubmit={handleEquipmentAssignment}>
-            <div className="grid gap-4 py-4">
-              <div className="space-y-2">
+            <div className="grid gap-3 py-3">
+              <div className="space-y-1">
                 <Label htmlFor="customer_id">Cliente</Label>
                 <Select 
                   onValueChange={(value) => {
@@ -1116,7 +1123,7 @@ export default function InventoryManager() {
                 </Select>
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label>Capturar MAC Address</Label>
                 <div className="flex items-center gap-2">
                   <div className="flex-1">
@@ -1141,8 +1148,8 @@ export default function InventoryManager() {
                 </p>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
                   <Label htmlFor="brand_id">Marca</Label>
                   <Select name="brand_id" required>
                     <SelectTrigger>
@@ -1158,7 +1165,7 @@ export default function InventoryManager() {
                   </Select>
                 </div>
                 
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label htmlFor="model">Modelo</Label>
                   <Input
                     id="model"
@@ -1168,7 +1175,7 @@ export default function InventoryManager() {
                 </div>
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="mt-3">
               <Button type="button" variant="outline" onClick={() => {
                 setShowMacCaptureForm(false);
                 setCapturedMAC("");

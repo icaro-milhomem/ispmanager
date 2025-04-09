@@ -6,6 +6,9 @@ import { prisma } from '../db/prisma';
  */
 export const getAllFuelRefills = async (req: Request, res: Response) => {
   try {
+    console.log('[FuelRefillController] Recebendo requisição para listar abastecimentos');
+    console.log('[FuelRefillController] Query params:', req.query);
+    
     // Parâmetros de paginação
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
@@ -30,41 +33,85 @@ export const getAllFuelRefills = async (req: Request, res: Response) => {
       where.date = { lte: new Date(toDate) };
     }
     
-    // Buscar abastecimentos com paginação
-    const [refills, total] = await Promise.all([
-      prisma.fuelRefill.findMany({
-        where,
-        orderBy: [
-          { date: 'desc' }
-        ],
-        include: {
-          vehicle: {
-            select: {
-              id: true,
-              plate: true,
-              model: true,
-              brand: true
-            }
-          }
-        },
-        skip,
-        take: limit
-      }),
-      prisma.fuelRefill.count({ where })
-    ]);
+    console.log('[FuelRefillController] Filtros aplicados:', where);
     
-    return res.json({
-      refills,
-      pagination: {
-        total,
-        page,
-        limit,
-        pages: Math.ceil(total / limit)
+    try {
+      // Buscar abastecimentos com paginação
+      const [refills, total] = await Promise.all([
+        prisma.fuelRefill.findMany({
+          where,
+          orderBy: [
+            { date: 'desc' }
+          ],
+          include: {
+            vehicle: {
+              select: {
+                id: true,
+                plate: true,
+                model: true,
+                brand: true
+              }
+            }
+          },
+          skip,
+          take: limit
+        }),
+        prisma.fuelRefill.count({ where })
+      ]);
+      
+      console.log(`[FuelRefillController] Encontrados ${refills.length} abastecimentos de um total de ${total}`);
+      
+      // Verificando se há dados disponíveis
+      if (refills.length === 0) {
+        console.log('[FuelRefillController] Nenhum abastecimento encontrado, verificando se existem registros na tabela');
+        
+        // Verificar se há algum registro na tabela
+        const anyRecord = await prisma.fuelRefill.findFirst();
+        if (!anyRecord) {
+          console.log('[FuelRefillController] Tabela vazia, retornando array vazio com aviso');
+        }
       }
-    });
+      
+      const response = {
+        refills,
+        pagination: {
+          total,
+          page,
+          limit,
+          pages: Math.ceil(total / limit)
+        }
+      };
+      
+      console.log('[FuelRefillController] Enviando resposta com dados de abastecimentos');
+      return res.json(response);
+    } catch (dbError: any) {
+      console.error('[FuelRefillController] Erro do banco de dados:', dbError);
+      
+      // Verificar se é um erro de conexão ou de tabela inexistente
+      if (dbError.code === 'P2021') {
+        console.error('[FuelRefillController] Tabela não encontrada');
+        return res.status(500).json({ 
+          message: 'Erro interno do servidor: tabela de abastecimentos não encontrada',
+          error: 'Table not found'
+        });
+      }
+      
+      if (dbError.code === 'P1001') {
+        console.error('[FuelRefillController] Erro de conexão com o banco de dados');
+        return res.status(500).json({ 
+          message: 'Erro de conexão com o banco de dados',
+          error: 'Database connection error'
+        });
+      }
+      
+      throw dbError;
+    }
   } catch (error) {
     console.error('Erro ao buscar abastecimentos:', error);
-    return res.status(500).json({ message: 'Erro interno do servidor' });
+    return res.status(500).json({ 
+      message: 'Erro interno do servidor',
+      error: error instanceof Error ? error.message : String(error)
+    });
   }
 };
 

@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -17,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Save, Loader2 } from "lucide-react";
 
 export default function EquipmentForm({ equipment, customers, onSubmit, onCancel }) {
   const [formData, setFormData] = useState(
@@ -33,6 +33,7 @@ export default function EquipmentForm({ equipment, customers, onSubmit, onCancel
       notes: ""
     }
   );
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({
@@ -41,21 +42,32 @@ export default function EquipmentForm({ equipment, customers, onSubmit, onCancel
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    setLoading(true);
+    try {
+      await onSubmit(formData);
+    } catch (error) {
+      console.error("Erro ao salvar equipamento:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          {equipment ? "Editar Equipamento" : "Novo Equipamento"}
-        </CardTitle>
-      </CardHeader>
+    <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle>{equipment ? "Editar Equipamento" : "Novo Equipamento"}</DialogTitle>
+        <DialogDescription>
+          {equipment 
+            ? "Edite as informações do equipamento existente" 
+            : "Preencha as informações para cadastrar um novo equipamento"}
+        </DialogDescription>
+      </DialogHeader>
+      
       <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nome do Equipamento</Label>
               <Input
@@ -65,14 +77,14 @@ export default function EquipmentForm({ equipment, customers, onSubmit, onCancel
                 required
               />
             </div>
-
+            
             <div className="space-y-2">
               <Label htmlFor="type">Tipo</Label>
               <Select
                 value={formData.type}
                 onValueChange={(value) => handleChange("type", value)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -86,16 +98,19 @@ export default function EquipmentForm({ equipment, customers, onSubmit, onCancel
                 </SelectContent>
               </Select>
             </div>
-
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="model">Modelo</Label>
               <Input
                 id="model"
                 value={formData.model}
                 onChange={(e) => handleChange("model", e.target.value)}
+                placeholder="Modelo do equipamento"
               />
             </div>
-
+            
             <div className="space-y-2">
               <Label htmlFor="ip_address">Endereço IP</Label>
               <Input
@@ -103,29 +118,33 @@ export default function EquipmentForm({ equipment, customers, onSubmit, onCancel
                 value={formData.ip_address}
                 onChange={(e) => handleChange("ip_address", e.target.value)}
                 required
+                placeholder="Ex: 192.168.1.1"
               />
             </div>
-
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="mac_address">Endereço MAC</Label>
               <Input
                 id="mac_address"
                 value={formData.mac_address}
                 onChange={(e) => handleChange("mac_address", e.target.value)}
+                placeholder="Ex: AA:BB:CC:DD:EE:FF"
               />
             </div>
-
+            
             <div className="space-y-2">
               <Label htmlFor="customer_id">Cliente</Label>
               <Select
                 value={formData.customer_id}
                 onValueChange={(value) => handleChange("customer_id", value)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="customer_id">
                   <SelectValue placeholder="Selecione um cliente (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={null}>Nenhum</SelectItem>
+                  <SelectItem value="">Nenhum</SelectItem>
                   {customers.map((customer) => (
                     <SelectItem key={customer.id} value={customer.id}>
                       {customer.full_name}
@@ -134,23 +153,26 @@ export default function EquipmentForm({ equipment, customers, onSubmit, onCancel
                 </SelectContent>
               </Select>
             </div>
-
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="location">Localização</Label>
               <Input
                 id="location"
                 value={formData.location}
                 onChange={(e) => handleChange("location", e.target.value)}
+                placeholder="Localização física do equipamento"
               />
             </div>
-
+            
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select
                 value={formData.status}
                 onValueChange={(value) => handleChange("status", value)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="status">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -161,18 +183,18 @@ export default function EquipmentForm({ equipment, customers, onSubmit, onCancel
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="installation_date">Data de Instalação</Label>
-              <Input
-                id="installation_date"
-                type="date"
-                value={formData.installation_date}
-                onChange={(e) => handleChange("installation_date", e.target.value)}
-              />
-            </div>
           </div>
-
+          
+          <div className="space-y-2">
+            <Label htmlFor="installation_date">Data de Instalação</Label>
+            <Input
+              id="installation_date"
+              type="date"
+              value={formData.installation_date}
+              onChange={(e) => handleChange("installation_date", e.target.value)}
+            />
+          </div>
+          
           <div className="space-y-2">
             <Label htmlFor="notes">Observações</Label>
             <Textarea
@@ -180,18 +202,38 @@ export default function EquipmentForm({ equipment, customers, onSubmit, onCancel
               value={formData.notes}
               onChange={(e) => handleChange("notes", e.target.value)}
               rows={3}
+              placeholder="Observações e informações adicionais"
             />
           </div>
-        </CardContent>
-        <CardFooter className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
+        </div>
+        
+        <div className="flex justify-end gap-3 mt-6">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+          >
             Cancelar
           </Button>
-          <Button type="submit" className="bg-blue-600">
-            {equipment ? "Salvar Alterações" : "Cadastrar Equipamento"}
+          <Button 
+            type="submit" 
+            disabled={loading}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Salvando...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                {equipment ? "Salvar" : "Cadastrar"}
+              </>
+            )}
           </Button>
-        </CardFooter>
+        </div>
       </form>
-    </Card>
+    </DialogContent>
   );
 }

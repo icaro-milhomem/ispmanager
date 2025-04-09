@@ -43,7 +43,7 @@ const getConfigById = (req, res) => __awaiter(void 0, void 0, void 0, function* 
 exports.getConfigById = getConfigById;
 // Criar nova configuração (normalmente só haverá uma)
 const createConfig = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { company_name, company_logo_url, admin_email, smtp_host, smtp_port, smtp_user, smtp_pass } = req.body;
+    const { company_name, company_logo_url, company_address, company_phone, company_email, company_website, admin_email, smtp_host, smtp_port, smtp_user, smtp_pass, login_background_color, login_text_color, login_button_color } = req.body;
     try {
         // Verificar se já existe alguma configuração
         const existingConfigs = yield prisma_1.prisma.systemConfig.findMany();
@@ -56,11 +56,18 @@ const createConfig = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             data: {
                 company_name,
                 company_logo_url,
+                company_address,
+                company_phone,
+                company_email,
+                company_website,
                 admin_email,
                 smtp_host,
                 smtp_port,
                 smtp_user,
-                smtp_pass
+                smtp_pass,
+                login_background_color,
+                login_text_color,
+                login_button_color
             }
         });
         return res.status(201).json({
@@ -77,7 +84,7 @@ exports.createConfig = createConfig;
 // Atualizar configuração
 const updateConfig = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
-    const { company_name, company_logo_url, admin_email, smtp_host, smtp_port, smtp_user, smtp_pass } = req.body;
+    const { company_name, company_logo_url, company_address, company_phone, company_email, company_website, admin_email, smtp_host, smtp_port, smtp_user, smtp_pass, login_background_color, login_text_color, login_button_color } = req.body;
     try {
         // Verificar se a configuração existe
         const config = yield prisma_1.prisma.systemConfig.findUnique({
@@ -92,11 +99,18 @@ const updateConfig = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             data: {
                 company_name,
                 company_logo_url,
+                company_address,
+                company_phone,
+                company_email,
+                company_website,
                 admin_email,
                 smtp_host,
                 smtp_port,
                 smtp_user,
-                smtp_pass
+                smtp_pass,
+                login_background_color,
+                login_text_color,
+                login_button_color
             }
         });
         return res.json({

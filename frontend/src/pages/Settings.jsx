@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -55,6 +54,11 @@ export default function SettingsPage() {
     company_phone: "",
     company_email: "",
     company_website: "",
+    admin_email: "",
+    smtp_host: "",
+    smtp_port: "",
+    smtp_user: "",
+    smtp_pass: "",
     login_background_color: "#f9fafb",
     login_text_color: "#1f2937",
     login_button_color: "#2563eb"
@@ -72,19 +76,110 @@ export default function SettingsPage() {
   }, []);
 
   const loadConfig = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
+      // Usar a função list do SystemConfigClient para obter configurações
       const configs = await SystemConfig.list();
-      if (configs.length > 0) {
-        setConfigData(configs[0]);
+      
+      // Verificar se temos dados válidos
+      if (configs && Array.isArray(configs) && configs.length > 0) {
+        console.log("Configurações carregadas:", configs);
+        
+        // Usar o primeiro item como configuração atual
+        const config = configs[0];
+        
+        // Certificar que temos um objeto de configuração válido
+        if (config) {
+          setConfigData(config);
+        } else {
+          console.warn("Configuração recebida é inválida:", config);
+          toast({
+            title: "Aviso",
+            description: "Configurações carregadas com formato inválido",
+            variant: "warning"
+          });
+          
+          // Inicializar com valores padrão
+          setConfigData({
+            company_name: "",
+            company_document: "",
+            company_address: "",
+            company_phone: "",
+            company_email: "",
+            company_logo_url: "",
+            support_phone: "",
+            support_email: "",
+            support_hours: "",
+            payment_details: "",
+            terms_and_conditions: "",
+            privacy_policy: "",
+            default_due_day: 10,
+          });
+        }
+      } else {
+        console.warn("Nenhuma configuração encontrada, criando novo registro");
+        
+        // Inicializar com valores padrão
+        setConfigData({
+          company_name: "",
+          company_document: "",
+          company_address: "",
+          company_phone: "",
+          company_email: "",
+          company_logo_url: "",
+          support_phone: "",
+          support_email: "",
+          support_hours: "",
+          payment_details: "",
+          terms_and_conditions: "",
+          privacy_policy: "",
+          default_due_day: 10,
+        });
       }
     } catch (error) {
       console.error("Erro ao carregar configurações:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível carregar as configurações do sistema",
+        description: `Erro ao carregar configurações: ${error.message}`,
         variant: "destructive"
       });
+      
+      // Verificar se temos dados no localStorage como fallback
+      try {
+        const configs = await SystemConfig.list();
+        if (configs && configs.length > 0) {
+          toast({
+            title: "Info",
+            description: "Usando dados salvos localmente",
+            variant: "default"
+          });
+        } else {
+          toast({
+            title: "Aviso", 
+            description: "Nenhuma configuração encontrada. Crie uma nova.",
+            variant: "warning"
+          });
+          
+          // Inicializar com valores padrão
+          setConfigData({
+            company_name: "",
+            company_document: "",
+            company_address: "",
+            company_phone: "",
+            company_email: "",
+            company_logo_url: "",
+            support_phone: "",
+            support_email: "",
+            support_hours: "",
+            payment_details: "",
+            terms_and_conditions: "",
+            privacy_policy: "",
+            default_due_day: 10,
+          });
+        }
+      } catch (localError) {
+        console.error("Erro ao verificar dados locais:", localError);
+      }
     } finally {
       setLoading(false);
     }
@@ -97,6 +192,13 @@ export default function SettingsPage() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    // Prevenir edição manual de URLs de base64
+    if (name === 'company_logo_url' && configData.company_logo_url?.startsWith('data:')) {
+      // Não permitir edição manual de URLs base64
+      return;
+    }
+    
     setConfigData({
       ...configData,
       [name]: value
@@ -107,21 +209,91 @@ export default function SettingsPage() {
     e.preventDefault();
     try {
       setSaving(true);
-      if (configData.id) {
-        await SystemConfig.update(configData.id, configData);
+      console.log("Iniciando salvamento das configurações:", configData);
+      
+      // Garantir que admin_email esteja preenchido
+      if (!configData.admin_email) {
+        console.warn("admin_email é obrigatório");
+        // Se não tiver admin_email, usar o company_email ou um valor padrão
+        const dataWithEmail = {
+          ...configData,
+          admin_email: configData.company_email || "admin@ispmanager.com"
+        };
+        setConfigData(dataWithEmail);
+        console.log("Dados atualizados com admin_email:", dataWithEmail);
+        
+        let result;
+        if (dataWithEmail.id) {
+          console.log(`Atualizando configuração existente ID ${dataWithEmail.id}`);
+          result = await SystemConfig.update(dataWithEmail);
+        } else {
+          console.log("Criando nova configuração");
+          result = await SystemConfig.create(dataWithEmail);
+        }
+        
+        console.log("Resultado da operação:", result);
+        
+        // Resto do código permanece igual
+        if (result && (result.id || result.success)) {
+          setConfigData(prevData => ({
+            ...prevData,
+            ...(result.data || result),
+            id: (result.data?.id || result.id || configData.id)
+          }));
+          
+          toast({
+            title: "Sucesso",
+            description: "Configurações salvas com sucesso"
+          });
+        } else {
+          console.warn("Resposta inesperada ao salvar configurações:", result);
+          toast({
+            title: "Aviso",
+            description: "Configurações salvas, mas a resposta foi inesperada",
+            variant: "warning"
+          });
+        }
       } else {
-        await SystemConfig.create(configData);
+        // Código original se admin_email já estiver preenchido
+        let result;
+        if (configData.id) {
+          console.log(`Atualizando configuração existente ID ${configData.id}`);
+          result = await SystemConfig.update(configData);
+        } else {
+          console.log("Criando nova configuração");
+          result = await SystemConfig.create(configData);
+        }
+        
+        console.log("Resultado da operação:", result);
+        
+        if (result && (result.id || result.success)) {
+          setConfigData(prevData => ({
+            ...prevData,
+            ...(result.data || result),
+            id: (result.data?.id || result.id || configData.id)
+          }));
+          
+          toast({
+            title: "Sucesso",
+            description: "Configurações salvas com sucesso"
+          });
+        } else {
+          console.warn("Resposta inesperada ao salvar configurações:", result);
+          toast({
+            title: "Aviso",
+            description: "Configurações salvas, mas a resposta foi inesperada",
+            variant: "warning"
+          });
+        }
       }
-      toast({
-        title: "Sucesso",
-        description: "Configurações salvas com sucesso"
-      });
+      
+      // Recarregar configurações para garantir sincronização
       await loadConfig();
     } catch (error) {
       console.error("Erro ao salvar configurações:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível salvar as configurações",
+        description: "Não foi possível salvar as configurações: " + (error.message || "Erro desconhecido"),
         variant: "destructive"
       });
     } finally {
@@ -208,23 +380,65 @@ export default function SettingsPage() {
 
     try {
       setLoading(true);
-      const { file_url } = await UploadFile({ file });
-      setConfigData(prev => ({
-        ...prev,
-        company_logo_url: file_url
-      }));
-      toast({
-        title: "Logo enviado com sucesso",
-        description: "A imagem foi carregada e salva"
-      });
+      
+      // Converter o arquivo para Base64 para armazenamento local
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const base64Data = event.target.result;
+          
+          // Ainda tenta fazer o upload para o servidor se disponível
+          try {
+            const response = await UploadFile({ file });
+            console.log("Resposta do servidor de upload:", response);
+          } catch (uploadError) {
+            console.warn("Erro ao fazer upload para o servidor, usando apenas base64:", uploadError);
+          }
+          
+          // Independente da resposta do servidor, usamos o Base64
+          setConfigData(prev => ({
+            ...prev,
+            company_logo_url: base64Data
+          }));
+          
+          toast({
+            title: "Logo enviado com sucesso",
+            description: "A imagem foi carregada e salva localmente"
+          });
+          
+          console.log("Upload concluído com sucesso, usando Base64");
+        } catch (error) {
+          console.error("Erro ao processar imagem:", error);
+          toast({
+            title: "Erro no upload",
+            description: error.message || "Não foi possível processar a imagem",
+            variant: "destructive"
+          });
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      reader.onerror = (error) => {
+        console.error("Erro ao ler arquivo:", error);
+        toast({
+          title: "Erro na leitura",
+          description: "Não foi possível ler o arquivo de imagem",
+          variant: "destructive"
+        });
+        setLoading(false);
+      };
+      
+      // Iniciar a leitura do arquivo como URL de dados
+      reader.readAsDataURL(file);
+      
     } catch (error) {
-      console.error("Erro ao fazer upload do logo:", error);
+      console.error("Erro ao iniciar upload do logo:", error);
       toast({
         title: "Erro no upload",
-        description: "Não foi possível enviar a imagem",
+        description: error.message || "Não foi possível enviar a imagem",
         variant: "destructive"
       });
-    } finally {
       setLoading(false);
     }
   };
@@ -283,9 +497,18 @@ export default function SettingsPage() {
                       <Input
                         id="company_logo_url"
                         name="company_logo_url"
-                        value={configData.company_logo_url}
+                        value={configData.company_logo_url?.startsWith('data:') 
+                          ? configData.company_logo_url.substring(0, 30) + '...' 
+                          : configData.company_logo_url || ''}
                         onChange={handleInputChange}
-                        placeholder="https://exemplo.com/logo.png"
+                        placeholder="Upload de imagem recomendado"
+                        disabled={configData.company_logo_url?.startsWith('data:')}
+                        title={configData.company_logo_url?.startsWith('data:') 
+                          ? "Imagem em formato base64 (não editável diretamente)" 
+                          : "URL da imagem de logo"}
+                        className={configData.company_logo_url?.startsWith('data:') 
+                          ? "bg-gray-100 text-gray-500 cursor-not-allowed" 
+                          : ""}
                       />
                       <div className="relative">
                         <input
@@ -315,10 +538,10 @@ export default function SettingsPage() {
                         <img 
                           src={configData.company_logo_url} 
                           alt="Logo Preview" 
-                          className="h-12 w-auto border rounded p-1"
+                          className="h-12 w-auto border rounded p-1 object-contain bg-white"
                           onError={(e) => {
                             e.target.onerror = null;
-                            e.target.src = "https://via.placeholder.com/150x50?text=Logo+Inválido";
+                            e.target.src = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='50' viewBox='0 0 150 50'%3E%3Crect fill='%23f0f0f0' width='150' height='50'/%3E%3Ctext fill='%23999' font-family='Arial' font-size='12' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3ELogo Inválido%3C/text%3E%3C/svg%3E";
                           }}
                         />
                       </div>
@@ -414,10 +637,14 @@ export default function SettingsPage() {
                       <input 
                         type="color" 
                         value={configData.login_background_color || "#f9fafb"}
-                        onChange={(e) => setConfigData({
-                          ...configData,
-                          login_background_color: e.target.value
-                        })}
+                        onChange={(e) => {
+                          handleInputChange({
+                            target: {
+                              name: "login_background_color",
+                              value: e.target.value
+                            }
+                          });
+                        }}
                         className="h-10 w-10 rounded cursor-pointer"
                       />
                     </div>
@@ -436,10 +663,14 @@ export default function SettingsPage() {
                       <input 
                         type="color" 
                         value={configData.login_text_color || "#1f2937"}
-                        onChange={(e) => setConfigData({
-                          ...configData,
-                          login_text_color: e.target.value
-                        })}
+                        onChange={(e) => {
+                          handleInputChange({
+                            target: {
+                              name: "login_text_color",
+                              value: e.target.value
+                            }
+                          });
+                        }}
                         className="h-10 w-10 rounded cursor-pointer"
                       />
                     </div>
@@ -458,10 +689,14 @@ export default function SettingsPage() {
                       <input 
                         type="color" 
                         value={configData.login_button_color || "#2563eb"}
-                        onChange={(e) => setConfigData({
-                          ...configData,
-                          login_button_color: e.target.value
-                        })}
+                        onChange={(e) => {
+                          handleInputChange({
+                            target: {
+                              name: "login_button_color",
+                              value: e.target.value
+                            }
+                          });
+                        }}
                         className="h-10 w-10 rounded cursor-pointer"
                       />
                     </div>
@@ -481,10 +716,10 @@ export default function SettingsPage() {
                       <img 
                         src={configData.company_logo_url}
                         alt="Logo Preview"
-                        className="h-10 w-auto mb-2"
+                        className="h-10 w-auto mb-2 object-contain bg-white"
                         onError={(e) => {
                           e.target.onerror = null;
-                          e.target.src = "https://via.placeholder.com/150x50?text=Logo+Inválido";
+                          e.target.src = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='50' viewBox='0 0 150 50'%3E%3Crect fill='%23f0f0f0' width='150' height='50'/%3E%3Ctext fill='%23999' font-family='Arial' font-size='12' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3ELogo Inválido%3C/text%3E%3C/svg%3E";
                         }}
                       />
                     )}

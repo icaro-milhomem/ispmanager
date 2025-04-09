@@ -1,5 +1,7 @@
 // Simulação local do SDK Base44
 // Esta é uma implementação local que substitui a dependência externa
+// As entidades Vehicle, FuelRefill, MileageLog e Driver foram desativadas do fallback
+// para garantir que apenas dados reais sejam usados no módulo de monitoramento de combustível
 // FALLBACK CLIENT - UTILIZADO APENAS QUANDO A API REAL FALHA
 
 // Função para criar um serviço de entidade local que simula chamadas de API
@@ -183,10 +185,6 @@ const entities = {
   SystemConfig: createEntityService('SystemConfig'),
   UserRole: createEntityService('UserRole'),
   FinancialTransaction: createEntityService('FinancialTransaction'),
-  Vehicle: createEntityService('Vehicle'),
-  FuelRefill: createEntityService('FuelRefill'),
-  MileageLog: createEntityService('MileageLog'),
-  Driver: createEntityService('Driver'),
   PaymentGateway: createEntityService('PaymentGateway'),
   BillingSchedule: createEntityService('BillingSchedule'),
   RouterIntegration: createEntityService('RouterIntegration'),

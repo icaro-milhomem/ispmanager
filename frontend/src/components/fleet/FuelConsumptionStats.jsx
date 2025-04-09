@@ -15,34 +15,196 @@ import {
   LineChart as LineChartIcon,
   CircleOff,
 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function FuelConsumptionStats() {
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [refills, setRefills] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [mileageLogs, setMileageLogs] = useState([]);
   const [period, setPeriod] = useState("month");
   const [selectedVehicle, setSelectedVehicle] = useState("all");
+  const [dataSource, setDataSource] = useState("api"); // 'api' ou 'local'
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     loadData();
   }, []);
 
+  // Função auxiliar para garantir que o resultado seja sempre um array
+  const ensureArray = (data) => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    if (data && typeof data === 'object' && data.length) return Array.from(data);
+    if (data && typeof data === 'object' && data.refills) return data.refills;
+    if (data && typeof data === 'object') return Object.values(data).filter(item => item && typeof item === 'object');
+    return [];
+  };
+
   const loadData = async () => {
+    setIsLoading(true);
+    setError(null);
+    setDataSource("api");
+    
     try {
-      setIsLoading(true);
-      const refillsData = await FuelRefill.list("-date");
-      const vehiclesData = await Vehicle.list();
-      const mileageLogsData = await MileageLog.list("-date");
+      console.log("Carregando dados reais de abastecimentos da API...");
       
-      setRefills(refillsData);
-      setVehicles(vehiclesData);
-      setMileageLogs(mileageLogsData);
+      // Carregar dados de abastecimentos
+      let refillsData;
+      try {
+        refillsData = await FuelRefill.list();
+        console.log("Resposta da API - Abastecimentos:", refillsData);
+      } catch (refillError) {
+        console.error("Erro ao carregar abastecimentos:", refillError);
+        toast({
+          title: "Erro",
+          description: "Erro ao carregar dados de abastecimentos",
+          variant: "destructive"
+        });
+        throw refillError;
+      }
+      
+      // Carregar dados de veículos
+      let vehiclesData;
+      try {
+        vehiclesData = await Vehicle.list();
+        console.log("Resposta da API - Veículos:", vehiclesData);
+      } catch (vehicleError) {
+        console.error("Erro ao carregar veículos:", vehicleError);
+        toast({
+          title: "Erro",
+          description: "Erro ao carregar dados de veículos",
+          variant: "destructive"
+        });
+        throw vehicleError;
+      }
+      
+      // Carregar dados de quilometragem
+      let mileageLogsData;
+      try {
+        mileageLogsData = await MileageLog.list();
+        console.log("Resposta da API - Quilometragem:", mileageLogsData);
+      } catch (mileageError) {
+        console.error("Erro ao carregar logs de quilometragem:", mileageError);
+        toast({
+          title: "Erro",
+          description: "Erro ao carregar dados de quilometragem",
+          variant: "destructive"
+        });
+        throw mileageError;
+      }
+      
+      // Extrair arrays dos dados
+      const refillsArray = ensureArray(refillsData);
+      const vehiclesArray = ensureArray(vehiclesData);
+      const mileageLogsArray = ensureArray(mileageLogsData);
+      
+      console.log("Arrays processados:");
+      console.log("- Abastecimentos:", refillsArray.length, refillsArray);
+      console.log("- Veículos:", vehiclesArray.length, vehiclesArray);
+      console.log("- Quilometragem:", mileageLogsArray.length, mileageLogsArray);
+      
+      if (refillsArray.length === 0 && vehiclesArray.length === 0) {
+        console.warn("Nenhum dado encontrado na API. Verificando se há problema com a conexão.");
+        setDataSource("local");
+        toast({
+          title: "Aviso",
+          description: "Não foi possível carregar dados do servidor. Usando dados locais para demonstração.",
+          variant: "warning"
+        });
+      }
+      
+      // Normalizar os dados para garantir nomes de campos consistentes
+      const normalizedRefills = refillsArray.map(refill => ({
+        id: refill.id || `temp-${Math.random()}`,
+        vehicle_id: refill.vehicle_id,
+        date: refill.date,
+        liters: refill.liters || refill.amount_liters || 0,
+        total_cost: refill.total_cost || refill.total_price || 0,
+        odometer: refill.odometer || refill.mileage || 0,
+        fuel_type: refill.fuel_type || "Gasolina",
+        createdAt: refill.createdAt || new Date().toISOString()
+      }));
+      
+      console.log("Refills normalizados:", normalizedRefills);
+      
+      setRefills(normalizedRefills);
+      setVehicles(vehiclesArray);
+      setMileageLogs(mileageLogsArray);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
+      setError(error.message || "Erro desconhecido ao carregar dados");
+      setDataSource("local");
+      toast({
+        title: "Erro",
+        description: "Falha ao carregar dados. Usando dados locais para demonstração.",
+        variant: "destructive"
+      });
+      
+      // Carregar dados de demonstração em caso de erro
+      const demoData = generateDemoData();
+      setRefills(demoData.refills);
+      setVehicles(demoData.vehicles);
+      setMileageLogs(demoData.mileageLogs);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Gerar dados de demonstração para casos onde a API falha
+  const generateDemoData = () => {
+    console.log("Gerando dados de demonstração para visualização");
+    
+    const demoVehicles = [
+      { id: "v1", plate: "ABC1234", model: "Fiat Strada", brand: "Fiat", fuel_type: "Gasolina" },
+      { id: "v2", plate: "DEF5678", model: "VW Saveiro", brand: "Volkswagen", fuel_type: "Diesel" }
+    ];
+    
+    const today = new Date();
+    const lastMonth = new Date(today);
+    lastMonth.setMonth(today.getMonth() - 1);
+    
+    const demoRefills = [];
+    
+    // Gerar 10 abastecimentos aleatórios no último mês
+    for (let i = 0; i < 10; i++) {
+      const vehicle = demoVehicles[Math.floor(Math.random() * demoVehicles.length)];
+      const date = new Date(lastMonth.getTime() + Math.random() * (today.getTime() - lastMonth.getTime()));
+      
+      demoRefills.push({
+        id: `demo-${i}`,
+        vehicle_id: vehicle.id,
+        date: date.toISOString(),
+        liters: Math.floor(Math.random() * 30) + 20, // 20-50 litros
+        total_cost: Math.floor(Math.random() * 150) + 100, // R$100-250
+        odometer: Math.floor(Math.random() * 5000) + 10000, // 10000-15000 km
+        fuel_type: vehicle.fuel_type
+      });
+    }
+    
+    const demoMileageLogs = [];
+    
+    // Gerar 5 registros de quilometragem
+    for (let i = 0; i < 5; i++) {
+      const vehicle = demoVehicles[Math.floor(Math.random() * demoVehicles.length)];
+      const date = new Date(lastMonth.getTime() + Math.random() * (today.getTime() - lastMonth.getTime()));
+      
+      demoMileageLogs.push({
+        id: `demo-log-${i}`,
+        vehicle_id: vehicle.id,
+        date: date.toISOString(),
+        initial_mileage: Math.floor(Math.random() * 1000) + 10000,
+        final_mileage: Math.floor(Math.random() * 1000) + 11000,
+        distance: Math.floor(Math.random() * 500) + 100
+      });
+    }
+    
+    return {
+      refills: demoRefills,
+      vehicles: demoVehicles,
+      mileageLogs: demoMileageLogs
+    };
   };
 
   // Filter data based on selected period and vehicle
@@ -59,8 +221,12 @@ export default function FuelConsumptionStats() {
       startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
     }
 
+    console.log("Filtrando dados para o período:", period, "a partir de:", startDate);
+    console.log("Veículo selecionado:", selectedVehicle);
+
     // Filter refills by date and vehicle if specified
     const filteredRefills = refills.filter(refill => {
+      if (!refill || !refill.date) return false;
       const refillDate = new Date(refill.date);
       const matchesDate = refillDate >= startDate;
       const matchesVehicle = selectedVehicle === "all" || refill.vehicle_id === selectedVehicle;
@@ -69,11 +235,15 @@ export default function FuelConsumptionStats() {
 
     // Filter mileage logs by date and vehicle if specified
     const filteredLogs = mileageLogs.filter(log => {
+      if (!log || !log.date) return false;
       const logDate = new Date(log.date);
       const matchesDate = logDate >= startDate;
       const matchesVehicle = selectedVehicle === "all" || log.vehicle_id === selectedVehicle;
       return matchesDate && matchesVehicle;
     });
+
+    console.log("Abastecimentos filtrados:", filteredRefills.length);
+    console.log("Registros de quilometragem filtrados:", filteredLogs.length);
 
     return {
       refills: filteredRefills,
@@ -81,19 +251,26 @@ export default function FuelConsumptionStats() {
     };
   };
 
+  // Função para formatar valores numéricos com segurança
+  const formatNumber = (value, decimals = 2) => {
+    if (value === undefined || value === null) return '0.00';
+    const num = parseFloat(value);
+    return isNaN(num) ? '0.00' : num.toFixed(decimals);
+  };
+
   // Calculate statistics
   const calculateStats = () => {
     const { refills: filteredRefills, logs: filteredLogs } = getFilteredData();
     
-    const totalFuelCost = filteredRefills.reduce((sum, refill) => sum + refill.total_cost, 0);
-    const totalLiters = filteredRefills.reduce((sum, refill) => sum + refill.liters, 0);
-    const totalDistance = filteredLogs.reduce((sum, log) => sum + log.distance, 0);
+    const totalFuelCost = filteredRefills.reduce((sum, refill) => sum + (refill?.total_cost || 0), 0);
+    const totalLiters = filteredRefills.reduce((sum, refill) => sum + (refill?.liters || 0), 0);
+    const totalDistance = filteredLogs.reduce((sum, log) => sum + (log?.distance || 0), 0);
     
     const avgFuelPrice = totalLiters > 0 ? totalFuelCost / totalLiters : 0;
     const avgConsumption = totalLiters > 0 && totalDistance > 0 ? totalDistance / totalLiters : 0;
     const costPerKm = totalDistance > 0 ? totalFuelCost / totalDistance : 0;
     
-    return {
+    const stats = {
       totalFuelCost,
       totalLiters,
       totalDistance,
@@ -102,28 +279,12 @@ export default function FuelConsumptionStats() {
       costPerKm,
       refillCount: filteredRefills.length
     };
+    
+    console.log("Estatísticas calculadas:", stats);
+    return stats;
   };
 
   const stats = calculateStats();
-
-  // Sample chart data (simplified for this action)
-  const consumptionData = [
-    { name: "Jan", consumo: 10.5 },
-    { name: "Fev", consumo: 11.2 },
-    { name: "Mar", consumo: 10.8 },
-    { name: "Abr", consumo: 12.1 },
-    { name: "Mai", consumo: 11.7 },
-    { name: "Jun", consumo: 10.9 }
-  ];
-
-  const costData = [
-    { name: "Jan", valor: 450 },
-    { name: "Fev", valor: 480 },
-    { name: "Mar", valor: 520 },
-    { name: "Abr", valor: 560 },
-    { name: "Mai", valor: 590 },
-    { name: "Jun", valor: 620 }
-  ];
 
   return (
     <div className="space-y-6">
@@ -132,6 +293,11 @@ export default function FuelConsumptionStats() {
           <h2 className="text-xl font-semibold">Análise de Consumo de Combustível</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Estatísticas de consumo e eficiência da frota
+            {dataSource === "local" && (
+              <span className="ml-2 text-orange-500 font-medium">
+                (Dados de demonstração)
+              </span>
+            )}
           </p>
         </div>
         
@@ -158,12 +324,30 @@ export default function FuelConsumptionStats() {
             <option value="quarter">Último Trimestre</option>
             <option value="year">Último Ano</option>
           </select>
+          
+          <button
+            onClick={loadData}
+            className="px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+          >
+            Atualizar
+          </button>
         </div>
       </div>
       
       {isLoading ? (
         <div className="flex justify-center py-12">
           <Spinner />
+        </div>
+      ) : error ? (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4 text-center">
+          <p className="text-red-600 font-medium">Erro ao carregar dados</p>
+          <p className="text-sm text-red-500">{error}</p>
+          <button
+            onClick={loadData}
+            className="mt-2 px-3 py-1 rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
+          >
+            Tentar novamente
+          </button>
         </div>
       ) : (
         <>
@@ -175,7 +359,7 @@ export default function FuelConsumptionStats() {
               <CardContent>
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-2xl font-bold">{stats.avgConsumption.toFixed(2)} km/L</p>
+                    <p className="text-2xl font-bold">{formatNumber(stats.avgConsumption)} km/L</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       Baseado em {stats.refillCount} abastecimentos
                     </p>
@@ -194,9 +378,9 @@ export default function FuelConsumptionStats() {
               <CardContent>
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-2xl font-bold">R$ {stats.costPerKm.toFixed(2)}</p>
+                    <p className="text-2xl font-bold">R$ {formatNumber(stats.costPerKm)}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Total: {stats.totalDistance.toFixed(0)} km
+                      Total: {formatNumber(stats.totalDistance, 0)} km
                     </p>
                   </div>
                   <div className="p-2 bg-blue-100 rounded-full dark:bg-blue-900">
@@ -213,9 +397,9 @@ export default function FuelConsumptionStats() {
               <CardContent>
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-2xl font-bold">{stats.totalLiters.toFixed(0)} L</p>
+                    <p className="text-2xl font-bold">{formatNumber(stats.totalLiters, 0)} L</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Preço médio: R$ {stats.avgFuelPrice.toFixed(2)}/L
+                      Preço médio: R$ {formatNumber(stats.avgFuelPrice)}/L
                     </p>
                   </div>
                   <div className="p-2 bg-yellow-100 rounded-full dark:bg-yellow-900">
@@ -232,7 +416,7 @@ export default function FuelConsumptionStats() {
               <CardContent>
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-2xl font-bold">R$ {stats.totalFuelCost.toFixed(2)}</p>
+                    <p className="text-2xl font-bold">R$ {formatNumber(stats.totalFuelCost)}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       {period === "month" ? "Último mês" : period === "quarter" ? "Último trimestre" : "Último ano"}
                     </p>

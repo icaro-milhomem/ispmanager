@@ -60,25 +60,40 @@ export default function VehicleList() {
     loadData();
   }, []);
 
+  const ensureArray = (data) => {
+    if (Array.isArray(data)) return data;
+    if (data && typeof data === 'object' && data.length) return Array.from(data);
+    if (data && typeof data === 'object') return Object.values(data).filter(item => item && typeof item === 'object');
+    return [];
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
+      console.log("Carregando veículos...");
       const vehiclesData = await Vehicle.list();
-      const driversData = await Driver.list();
+      console.log("Veículos carregados:", vehiclesData);
       
-      setVehicles(vehiclesData);
-      setDrivers(driversData);
+      console.log("Carregando motoristas...");
+      const driversData = await Driver.list();
+      console.log("Motoristas carregados:", driversData);
+      
+      setVehicles(ensureArray(vehiclesData));
+      setDrivers(ensureArray(driversData));
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
+      setVehicles([]);
+      setDrivers([]);
     } finally {
       setLoading(false);
     }
   };
 
   const getDriverName = (driverId) => {
-    if (!driverId) return "Não atribuído";
-    const driver = drivers.find(d => d.id === driverId);
-    return driver ? driver.name : "Motorista não encontrado";
+    if (!driverId) return "Motorista não atribuído";
+    if (!Array.isArray(drivers)) return "Motorista desconhecido";
+    const driver = drivers.find(d => d && d.id === driverId);
+    return driver ? driver.name : "Motorista desconhecido";
   };
 
   const handleAddVehicle = async (vehicleData) => {
@@ -111,15 +126,20 @@ export default function VehicleList() {
     }
   };
 
-  const filteredVehicles = vehicles.filter(vehicle => {
-    const matchesSearch = 
-      vehicle.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      vehicle.plate.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredVehicles = Array.isArray(vehicles) ? vehicles.filter(vehicle => {
+    if (!vehicle) return false;
     
-    const matchesStatus = filterStatus === "todos" || vehicle.status === filterStatus;
+    const searchLower = searchQuery.toLowerCase();
+    const plate = (vehicle.plate || "").toLowerCase();
+    const model = (vehicle.model || "").toLowerCase();
+    const brand = (vehicle.brand || "").toLowerCase();
+    const driverName = getDriverName(vehicle.driver_id).toLowerCase();
     
-    return matchesSearch && matchesStatus;
-  });
+    return plate.includes(searchLower) || 
+           model.includes(searchLower) || 
+           brand.includes(searchLower) || 
+           driverName.includes(searchLower);
+  }) : [];
 
   const statusColor = {
     ativo: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",

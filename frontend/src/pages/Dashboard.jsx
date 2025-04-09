@@ -6,6 +6,7 @@ import { Customer } from "../api/entities";
 import { NetworkNode } from "../api/entities";
 import { Invoice } from "../api/entities";
 import { SupportTicket } from "../api/entities";
+import { SystemConfigClient } from "../api/systemConfigClient";
 import {
   ActivitySquare,
   AlertTriangle,
@@ -28,13 +29,36 @@ export default function DashboardPage() {
     financial: { monthlyRevenue: 0, pendingPayments: 0, overduePayments: 0 },
     support: { openTickets: 0, urgentTickets: 0 }
   });
+  const [systemConfig, setSystemConfig] = useState({
+    company_name: "ISP Manager",
+    company_logo_url: ""
+  });
   
   // Controle da visualização do componente de teste
   const [showApiTest, setShowApiTest] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
+    loadSystemConfig();
   }, []);
+
+  const loadSystemConfig = async () => {
+    try {
+      const configs = await SystemConfigClient.list();
+      console.log("Configurações carregadas no Dashboard:", configs);
+      
+      if (configs && Array.isArray(configs) && configs.length > 0) {
+        const config = configs[0];
+        setSystemConfig({
+          company_name: config.company_name || "ISP Manager",
+          company_logo_url: config.company_logo_url || ""
+        });
+        console.log("Configurações aplicadas no Dashboard:", config);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar configurações:", error);
+    }
+  };
 
   const loadDashboardData = async () => {
     setIsLoading(true);
@@ -161,7 +185,12 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <div className="flex items-center">
+          <div>
+            <h1 className="text-2xl font-bold">Dashboard</h1>
+            <p className="text-gray-500">Visão geral de {systemConfig.company_name || "sua empresa"}</p>
+          </div>
+        </div>
         <div className="flex gap-2">
           <Button 
             onClick={() => setShowApiTest(!showApiTest)} 
@@ -170,7 +199,10 @@ export default function DashboardPage() {
             {showApiTest ? "Ocultar Teste API" : "Testar API"}
           </Button>
           <Button 
-            onClick={loadDashboardData} 
+            onClick={() => {
+              loadDashboardData();
+              loadSystemConfig();
+            }}
             variant="outline"
             disabled={isLoading}
           >

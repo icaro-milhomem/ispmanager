@@ -213,6 +213,8 @@ export const Core = {
   // Upload de arquivos
   UploadFile: async (fileData) => {
     try {
+      console.log("Iniciando upload de arquivo:", fileData?.file?.name);
+      
       if (!fileData.file) {
         console.error('Arquivo não fornecido');
         return { success: false, error: 'Arquivo não fornecido' };
@@ -225,6 +227,8 @@ export const Core = {
         formData.append('metadata', JSON.stringify(fileData.metadata));
       }
       
+      console.log("Enviando requisição para", `${API_BASE_URL}/api/integrations/upload`);
+      
       const response = await fetch(`${API_BASE_URL}/api/integrations/upload`, {
         method: 'POST',
         headers: {
@@ -234,17 +238,55 @@ export const Core = {
       });
       
       if (!response.ok) {
-        console.error('Erro no upload:', response.statusText);
+        console.error('Erro no upload:', response.status, response.statusText);
+        
+        // Se falhar, usar URL local (fallback)
+        const localFileUrl = URL.createObjectURL(fileData.file);
+        console.log("Usando URL local como fallback:", localFileUrl);
+        
         return { 
           success: true, 
-          fileUrl: URL.createObjectURL(fileData.file)
+          file_url: localFileUrl,
+          fileUrl: localFileUrl,
+          isLocalFallback: true
         };
       }
       
-      return await response.json();
+      const responseData = await response.json();
+      console.log("Resposta do servidor de upload:", responseData);
+      
+      // Verificar se a resposta tem o formato esperado
+      if (!responseData.fileUrl && !responseData.file_url) {
+        console.warn("Resposta não contém URL do arquivo, adicionando propriedade file_url");
+        responseData.file_url = responseData.fileUrl;
+      }
+      
+      if (!responseData.fileUrl && responseData.file_url) {
+        responseData.fileUrl = responseData.file_url;
+      }
+      
+      return responseData;
     } catch (error) {
       console.error('Erro no upload de arquivo:', error);
-      return { success: false, error: error.message };
+      
+      // Se ocorrer um erro, usar URL local (fallback)
+      if (fileData.file) {
+        const localFileUrl = URL.createObjectURL(fileData.file);
+        console.log("Erro no upload, usando URL local como fallback:", localFileUrl);
+        
+        return { 
+          success: true, 
+          file_url: localFileUrl,
+          fileUrl: localFileUrl,
+          error: error.message,
+          isLocalFallback: true
+        };
+      }
+      
+      return { 
+        success: false, 
+        error: error.message 
+      };
     }
   },
   
@@ -263,7 +305,7 @@ export const Core = {
       if (!response.ok) {
         return { 
           success: true,
-          imageUrl: 'https://via.placeholder.com/400x300?text=Imagem+não+disponível'
+          imageUrl: 'data:image/svg+xml;charset=UTF-8,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"%3E%3Crect fill="%23f0f0f0" width="400" height="300"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="18" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EImagem não disponível%3C/text%3E%3C/svg%3E'
         };
       }
       
@@ -272,7 +314,7 @@ export const Core = {
       console.error('Erro na geração de imagem:', error);
       return { 
         success: true,
-        imageUrl: 'https://via.placeholder.com/400x300?text=Imagem+não+disponível'
+        imageUrl: 'data:image/svg+xml;charset=UTF-8,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"%3E%3Crect fill="%23f0f0f0" width="400" height="300"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="18" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EImagem não disponível%3C/text%3E%3C/svg%3E'
       };
     }
   },

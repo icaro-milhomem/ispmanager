@@ -184,6 +184,10 @@ model SystemConfig {
   id                     String   @id @default(uuid())
   company_name           String
   company_logo_url       String?
+  company_address        String?
+  company_phone          String?
+  company_email          String?
+  company_website        String?
   admin_email            String
   smtp_host              String?
   smtp_port              Int?

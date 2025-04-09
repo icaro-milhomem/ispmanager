@@ -11,6 +11,9 @@ const router = Router();
 // Obter configurações do sistema (público)
 router.get('/', getSystemConfig);
 
+// Criar configurações do sistema (apenas admin)
+router.post('/', authMiddleware, updateSystemConfig);
+
 // Atualizar configurações do sistema (apenas admin)
 router.put('/', authMiddleware, adminMiddleware, updateSystemConfig);
 

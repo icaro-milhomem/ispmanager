@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,9 +18,9 @@ export default function FuelRefillForm({ refill, onSubmit, vehicles = [], driver
     vehicle_id: refill?.vehicle_id || "",
     date: refill?.date ? new Date(refill.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
     time: refill?.date ? new Date(refill.date).toTimeString().substring(0, 5) : new Date().toTimeString().substring(0, 5),
-    odometer: refill?.odometer || "",
-    liters: refill?.liters || "",
-    total_cost: refill?.total_cost || "",
+    odometer: refill?.odometer || refill?.mileage || "",
+    liters: refill?.liters || refill?.amount_liters || "",
+    total_cost: refill?.total_cost || refill?.total_price || "",
     fuel_type: refill?.fuel_type || "gasolina",
     full_tank: refill?.full_tank !== undefined ? refill.full_tank : true,
     gas_station: refill?.gas_station || "",
@@ -89,12 +89,16 @@ export default function FuelRefillForm({ refill, onSubmit, vehicles = [], driver
         date: dateTime.toISOString(),
         odometer: Number(formData.odometer),
         liters: Number(formData.liters),
-        total_cost: Number(formData.total_cost)
+        amount_liters: Number(formData.liters),
+        total_cost: Number(formData.total_cost),
+        total_price: Number(formData.total_cost),
+        mileage: Number(formData.odometer)
       };
       
       // Remove time field as it's now part of date
       delete data.time;
       
+      console.log("Enviando dados de abastecimento:", data);
       onSubmit(data);
     }
   };

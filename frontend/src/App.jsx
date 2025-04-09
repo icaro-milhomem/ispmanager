@@ -1,5 +1,6 @@
 import './App.css'
 import { BrowserRouter, Routes, Route } from "react-router-dom"
+import React, { useState, useEffect } from 'react';
 
 // Importação das páginas principais
 import SystemLogin from "./pages/SystemLogin"
@@ -43,6 +44,30 @@ function PageNotImplemented() {
 
 // Versão simples do app para depuração
 function App() {
+  // Verificar e limpar dados antigos no localStorage se necessário
+  useEffect(() => {
+    try {
+      // Limpar dados antigos se forem de uma versão diferente
+      const appVersion = "1.0.1"; // Incrementar esta versão quando houver mudanças no formato dos dados
+      const savedVersion = localStorage.getItem('app_version');
+      
+      if (savedVersion !== appVersion) {
+        console.log(`Detectada nova versão do app: ${appVersion} (anterior: ${savedVersion || 'nenhuma'})`);
+        console.log("Limpando localStorage para evitar problemas de compatibilidade");
+        
+        // Remover apenas as chaves relacionadas às configurações
+        localStorage.removeItem('system_config');
+        localStorage.removeItem('system-config-data');
+        localStorage.removeItem('system-config-last-update');
+        
+        // Atualizar versão
+        localStorage.setItem('app_version', appVersion);
+      }
+    } catch (error) {
+      console.error("Erro ao verificar versão do app:", error);
+    }
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>

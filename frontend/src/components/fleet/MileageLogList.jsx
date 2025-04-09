@@ -56,31 +56,52 @@ export default function MileageLogList() {
     loadData();
   }, []);
 
+  const ensureArray = (data) => {
+    if (Array.isArray(data)) return data;
+    if (data && typeof data === 'object' && data.length) return Array.from(data);
+    if (data && typeof data === 'object') return Object.values(data).filter(item => item && typeof item === 'object');
+    return [];
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
-      const logsData = await MileageLog.list("-date");
-      const vehiclesData = await Vehicle.list();
-      const driversData = await Driver.list();
+      console.log("Carregando registros de quilometragem...");
+      const logsData = await MileageLog.list();
+      console.log("Registros de quilometragem carregados:", logsData);
       
-      setLogs(logsData);
-      setVehicles(vehiclesData);
-      setDrivers(driversData);
+      console.log("Carregando veículos...");
+      const vehiclesData = await Vehicle.list();
+      console.log("Veículos carregados:", vehiclesData);
+      
+      console.log("Carregando motoristas...");
+      const driversData = await Driver.list();
+      console.log("Motoristas carregados:", driversData);
+      
+      setLogs(ensureArray(logsData));
+      setVehicles(ensureArray(vehiclesData));
+      setDrivers(ensureArray(driversData));
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
+      setLogs([]);
+      setVehicles([]);
+      setDrivers([]);
     } finally {
       setLoading(false);
     }
   };
 
   const getVehiclePlate = (vehicleId) => {
-    const vehicle = vehicles.find(v => v.id === vehicleId);
-    return vehicle ? `${vehicle.model} (${vehicle.plate})` : "Veículo desconhecido";
+    if (!vehicleId) return "Veículo desconhecido";
+    if (!Array.isArray(vehicles)) return "Veículo desconhecido";
+    const vehicle = vehicles.find(v => v && v.id === vehicleId);
+    return vehicle ? vehicle.plate : "Veículo desconhecido";
   };
 
   const getDriverName = (driverId) => {
-    if (!driverId) return "Não informado";
-    const driver = drivers.find(d => d.id === driverId);
+    if (!driverId) return "Motorista desconhecido";
+    if (!Array.isArray(drivers)) return "Motorista desconhecido";
+    const driver = drivers.find(d => d && d.id === driverId);
     return driver ? driver.name : "Motorista desconhecido";
   };
 
@@ -114,16 +135,23 @@ export default function MileageLogList() {
     }
   };
 
-  const filteredLogs = logs.filter(log => {
+  const filteredLogs = Array.isArray(logs) ? logs.filter(log => {
+    if (!log) return false;
+    
     const matchesVehicle = selectedVehicle === "all" || log.vehicle_id === selectedVehicle;
     
+    const searchLower = searchQuery.toLowerCase();
+    const vehiclePlate = getVehiclePlate(log.vehicle_id).toLowerCase();
+    const driverName = getDriverName(log.driver_id).toLowerCase();
+    const date = log.date ? new Date(log.date).toLocaleDateString() : "";
+    
     const matchesSearch = 
-      getVehiclePlate(log.vehicle_id).toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.purpose?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.route?.toLowerCase().includes(searchQuery.toLowerCase());
+      vehiclePlate.includes(searchLower) ||
+      driverName.includes(searchLower) ||
+      date.includes(searchLower);
     
     return matchesVehicle && matchesSearch;
-  });
+  }) : [];
 
   return (
     <Card className="bg-white dark:bg-gray-800">

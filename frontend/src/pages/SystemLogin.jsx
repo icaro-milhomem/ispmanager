@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Auth } from "../api/entities";
+import { SystemConfigClient } from "../api/systemConfigClient";
 
 export default function SystemLoginPage() {
   console.log("SystemLogin component is rendering");
@@ -9,6 +10,7 @@ export default function SystemLoginPage() {
     password: ""
   });
   const [error, setError] = useState("");
+  const [configLoading, setConfigLoading] = useState(true);
   const [systemConfig, setSystemConfig] = useState({
     company_name: "ISP Manager",
     company_logo_url: "",
@@ -20,6 +22,34 @@ export default function SystemLoginPage() {
   useEffect(() => {
     console.log("SystemLogin useEffect running");
     document.title = "Login - ISP Manager";
+    
+    // Carregar configurações do sistema
+    const loadSystemConfig = async () => {
+      try {
+        setConfigLoading(true);
+        const configs = await SystemConfigClient.list();
+        console.log("Configurações carregadas:", configs);
+        
+        if (configs && Array.isArray(configs) && configs.length > 0) {
+          const config = configs[0];
+          setSystemConfig(prevConfig => ({
+            ...prevConfig,
+            company_name: config.company_name || "ISP Manager",
+            company_logo_url: config.company_logo_url || "",
+            login_background_color: config.login_background_color || "#f9fafb",
+            login_text_color: config.login_text_color || "#1f2937",
+            login_button_color: config.login_button_color || "#2563eb"
+          }));
+          console.log("Configurações aplicadas na tela de login:", config);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar configurações:", error);
+      } finally {
+        setConfigLoading(false);
+      }
+    };
+    
+    loadSystemConfig();
   }, []);
 
   const handleLogin = async (e) => {

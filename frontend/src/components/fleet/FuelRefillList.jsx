@@ -58,31 +58,67 @@ export default function FuelRefillList() {
     loadData();
   }, []);
 
+  // Função auxiliar para garantir que o resultado seja sempre um array
+  const ensureArray = (data) => {
+    if (Array.isArray(data)) return data;
+    if (data && typeof data === 'object' && data.length) return Array.from(data);
+    if (data && typeof data === 'object') return Object.values(data).filter(item => item && typeof item === 'object');
+    return [];
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
-      const refillsData = await FuelRefill.list("-date");
-      const vehiclesData = await Vehicle.list();
-      const driversData = await Driver.list();
+      console.log("Carregando abastecimentos...");
+      const refillsData = await FuelRefill.list();
+      console.log("Abastecimentos carregados:", refillsData);
       
-      setRefills(refillsData);
-      setVehicles(vehiclesData);
-      setDrivers(driversData);
+      console.log("Carregando veículos...");
+      const vehiclesData = await Vehicle.list();
+      console.log("Veículos carregados:", vehiclesData);
+      
+      console.log("Carregando motoristas...");
+      const driversData = await Driver.list();
+      console.log("Motoristas carregados:", driversData);
+      
+      // Garantir que todos os dados sejam arrays
+      const refillsArray = ensureArray(refillsData.refills || refillsData);
+      
+      // Verificar e filtrar abastecimentos sem ID
+      const validRefills = refillsArray.filter(refill => {
+        if (!refill || !refill.id) {
+          console.warn("Abastecimento sem ID detectado:", refill);
+          return false;
+        }
+        return true;
+      });
+      
+      console.log("Abastecimentos válidos:", validRefills.length);
+      setRefills(validRefills);
+      setVehicles(ensureArray(vehiclesData));
+      setDrivers(ensureArray(driversData));
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
+      // Em caso de erro, inicializar com arrays vazios
+      setRefills([]);
+      setVehicles([]);
+      setDrivers([]);
     } finally {
       setLoading(false);
     }
   };
 
   const getVehiclePlate = (vehicleId) => {
-    const vehicle = vehicles.find(v => v.id === vehicleId);
-    return vehicle ? `${vehicle.model} (${vehicle.plate})` : "Veículo desconhecido";
+    if (!vehicleId) return "Veículo desconhecido";
+    if (!Array.isArray(vehicles)) return "Veículo desconhecido";
+    const vehicle = vehicles.find(v => v && v.id === vehicleId);
+    return vehicle ? vehicle.plate : "Veículo desconhecido";
   };
 
   const getDriverName = (driverId) => {
-    if (!driverId) return "Não informado";
-    const driver = drivers.find(d => d.id === driverId);
+    if (!driverId) return "Motorista desconhecido";
+    if (!Array.isArray(drivers)) return "Motorista desconhecido";
+    const driver = drivers.find(d => d && d.id === driverId);
     return driver ? driver.name : "Motorista desconhecido";
   };
 
@@ -108,6 +144,12 @@ export default function FuelRefillList() {
 
   const handleDeleteRefill = async () => {
     try {
+      if (!selectedRefill || !selectedRefill.id) {
+        console.error("Erro ao excluir: ID do abastecimento indefinido", selectedRefill);
+        return;
+      }
+      
+      console.log("Excluindo abastecimento com ID:", selectedRefill.id);
       await FuelRefill.delete(selectedRefill.id);
       setIsDeleteDialogOpen(false);
       loadData();
@@ -116,22 +158,31 @@ export default function FuelRefillList() {
     }
   };
 
-  const filteredRefills = refills.filter(refill => {
-    const matchesVehicle = selectedVehicle === "all" || refill.vehicle_id === selectedVehicle;
+  const filteredRefills = Array.isArray(refills) ? refills.filter(refill => {
+    if (!refill) return false;
     
-    const matchesSearch = 
-      getVehiclePlate(refill.vehicle_id).toLowerCase().includes(searchQuery.toLowerCase()) ||
-      refill.gas_station?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      refill.location?.toLowerCase().includes(searchQuery.toLowerCase());
+    const searchLower = searchQuery.toLowerCase();
+    const vehiclePlate = getVehiclePlate(refill.vehicle_id).toLowerCase();
+    const driverName = getDriverName(refill.driver_id).toLowerCase();
+    const date = refill.date ? new Date(refill.date).toLocaleDateString() : "";
     
-    return matchesVehicle && matchesSearch;
-  });
+    return vehiclePlate.includes(searchLower) || 
+           driverName.includes(searchLower) || 
+           date.includes(searchLower);
+  }) : [];
 
   const fuelTypeColors = {
     gasolina: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
     etanol: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
     diesel: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
     gnv: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+  };
+
+  // Função para formatar valores numéricos com segurança
+  const formatNumber = (value, decimals = 2) => {
+    if (value === undefined || value === null || value === '') return '0.00';
+    const num = parseFloat(value);
+    return isNaN(num) ? '0.00' : num.toFixed(decimals);
   };
 
   return (
@@ -211,16 +262,16 @@ export default function FuelRefillList() {
                 {filteredRefills.map((refill) => (
                   <TableRow key={refill.id}>
                     <TableCell className="font-medium">{getVehiclePlate(refill.vehicle_id)}</TableCell>
-                    <TableCell>{new Date(refill.date).toLocaleDateString('pt-BR')}</TableCell>
-                    <TableCell>{refill.liters.toFixed(2)} L</TableCell>
-                    <TableCell>R$ {refill.total_cost.toFixed(2)}</TableCell>
-                    <TableCell>{refill.odometer} km</TableCell>
+                    <TableCell>{refill.date ? new Date(refill.date).toLocaleDateString('pt-BR') : '-'}</TableCell>
+                    <TableCell>{formatNumber(refill.liters || refill.amount_liters)} L</TableCell>
+                    <TableCell>R$ {formatNumber(refill.total_cost || refill.total_price)}</TableCell>
+                    <TableCell>{refill.odometer || refill.mileage || '0'} km</TableCell>
                     <TableCell>
                       <Badge
                         variant="secondary"
                         className={fuelTypeColors[refill.fuel_type] || "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"}
                       >
-                        {refill.fuel_type}
+                        {refill.fuel_type || "Desconhecido"}
                       </Badge>
                     </TableCell>
                     <TableCell>{refill.gas_station || "Não informado"}</TableCell>
@@ -243,8 +294,14 @@ export default function FuelRefillList() {
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
-                              setSelectedRefill(refill);
-                              setIsDeleteDialogOpen(true);
+                              if (refill && refill.id) {
+                                console.log("Selecionado abastecimento para exclusão:", refill);
+                                setSelectedRefill(refill);
+                                setIsDeleteDialogOpen(true);
+                              } else {
+                                console.error("Tentativa de selecionar abastecimento inválido:", refill);
+                                alert("Não foi possível selecionar este abastecimento para exclusão. Recarregue a página e tente novamente.");
+                              }
                             }}
                             className="text-red-600 dark:text-red-400"
                           >
@@ -309,10 +366,14 @@ export default function FuelRefillList() {
             </DialogTitle>
             <DialogDescription>
               Esta ação não pode ser desfeita. Isso excluirá permanentemente o registro 
-              de abastecimento do dia{" "}
-              <span className="font-semibold">
-                {selectedRefill && new Date(selectedRefill.date).toLocaleDateString('pt-BR')}
-              </span>.
+              de abastecimento {selectedRefill ? (
+                <>
+                  do dia{" "}
+                  <span className="font-semibold">
+                    {selectedRefill.date ? new Date(selectedRefill.date).toLocaleDateString('pt-BR') : 'selecionado'}
+                  </span>
+                </>
+              ) : 'selecionado'}.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -325,6 +386,7 @@ export default function FuelRefillList() {
             <Button
               variant="destructive"
               onClick={handleDeleteRefill}
+              disabled={!selectedRefill}
             >
               Excluir Abastecimento
             </Button>
