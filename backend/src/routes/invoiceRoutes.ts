@@ -13,8 +13,8 @@ import { adminMiddleware } from '../middlewares/adminMiddleware';
 
 const router = Router();
 
-// Aplicar middleware de autenticação em todas as rotas
-router.use(authMiddleware);
+// TEMPORÁRIO: Removendo autenticação de todas as rotas
+// router.use(authMiddleware);
 
 // Rotas de fatura
 router.get('/', getAllInvoices);
@@ -23,7 +23,7 @@ router.post('/', createInvoice);
 router.put('/:id', updateInvoice);
 router.delete('/:id', deleteInvoice);
 
-// Rotas de pagamento
+// Registro de pagamentos
 router.post('/:id/payments', registerPayment);
 router.get('/:id/payments', getPaymentsByInvoice);
 

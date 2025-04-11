@@ -61,11 +61,15 @@ export default function SystemLoginPage() {
     setLoading(true);
 
     try {
+      console.log("Tentando login com:", { email: loginForm.email });
+      
       // Usar a API real para login
       const response = await Auth.login(loginForm.email, loginForm.password);
+      console.log("Resposta do servidor de login:", response);
       
       // Verificamos se temos uma resposta com token e usuário
       if (!response || !response.token || !response.user) {
+        console.error("Resposta inválida:", response);
         throw new Error("Resposta inválida do servidor");
       }
 
@@ -76,6 +80,7 @@ export default function SystemLoginPage() {
         email: response.user.email,
         role: response.user.role
       };
+      console.log("Dados do usuário para armazenar:", userData);
 
       // Armazenar os dados do usuário em sessionStorage para o layout usar
       sessionStorage.setItem("currentUser", JSON.stringify(userData));
@@ -83,6 +88,7 @@ export default function SystemLoginPage() {
       
       // Armazenar token para requisições autenticadas
       localStorage.setItem("auth_token", response.token);
+      console.log("Token salvo com sucesso, redirecionando...")
 
       // Redirecionar para o dashboard
       window.location.href = "/";

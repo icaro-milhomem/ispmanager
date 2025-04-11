@@ -3,39 +3,30 @@ import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-async function main() {
+async function createAdmin() {
   try {
-    // Verificar se já existe um usuário admin
-    const existingAdmin = await prisma.user.findFirst({
-      where: {
-        email: 'admin@teste.com'
-      }
-    });
-
-    if (existingAdmin) {
-      console.log('O usuário administrador já existe:', existingAdmin.email);
-      return;
-    }
-
-    // Criar senha criptografada
-    const hashedPassword = await bcrypt.hash('senha123', 10);
-
-    // Criar usuário admin
-    const admin = await prisma.user.create({
-      data: {
-        name: 'Administrador',
-        email: 'admin@teste.com',
+    const hashedPassword = await bcrypt.hash('admin123', 10);
+    
+    const admin = await prisma.user.upsert({
+      where: { email: 'admin@ispmanager.com' },
+      update: {
         password: hashedPassword,
+        role: 'ADMIN'
+      },
+      create: {
+        email: 'admin@ispmanager.com',
+        password: hashedPassword,
+        name: 'Administrador',
         role: 'ADMIN'
       }
     });
 
-    console.log('Usuário administrador criado com sucesso:', admin);
+    console.log('Admin user created/updated:', admin);
   } catch (error) {
-    console.error('Erro ao criar usuário administrador:', error);
+    console.error('Error creating admin user:', error);
   } finally {
     await prisma.$disconnect();
   }
 }
 
-main(); 
+createAdmin(); 

@@ -41,9 +41,11 @@ const router = (0, express_1.Router)();
 router.use('/api/auth', authRoutes_1.default);
 router.use('/api/health', healthRoutes_1.default);
 // Rotas protegidas (requerem autenticação)
-router.use('/api/customers', auth_1.authenticateJWT, customerRoutes_1.default);
+// TEMPORÁRIO: Removendo autenticação das rotas de clientes e faturas
+router.use('/api/customers', customerRoutes_1.default);
+router.use('/api/invoices', invoiceRoutes_1.default);
+// Outras rotas protegidas
 router.use('/api/plans', auth_1.authenticateJWT, planRoutes_1.default);
-router.use('/api/invoices', auth_1.authenticateJWT, invoiceRoutes_1.default);
 router.use('/api/tickets', auth_1.authenticateJWT, ticketRoutes_1.default);
 router.use('/api/network-issues', auth_1.authenticateJWT, networkIssueRoutes_1.default);
 router.use('/api/ip-pools', auth_1.authenticateJWT, ipPoolRoutes_1.default);

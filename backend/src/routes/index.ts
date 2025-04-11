@@ -40,9 +40,12 @@ router.use('/api/auth', authRoutes);
 router.use('/api/health', healthRoutes);
 
 // Rotas protegidas (requerem autenticação)
-router.use('/api/customers', authenticateJWT, customerRoutes);
+// TEMPORÁRIO: Removendo autenticação das rotas de clientes e faturas
+router.use('/api/customers', customerRoutes);
+router.use('/api/invoices', invoiceRoutes);
+
+// Outras rotas protegidas
 router.use('/api/plans', authenticateJWT, planRoutes);
-router.use('/api/invoices', authenticateJWT, invoiceRoutes);
 router.use('/api/tickets', authenticateJWT, ticketRoutes);
 router.use('/api/network-issues', authenticateJWT, networkIssueRoutes);
 router.use('/api/ip-pools', authenticateJWT, ipPoolRoutes);

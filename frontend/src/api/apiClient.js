@@ -341,34 +341,42 @@ export const createEntityClient = (entityPath) => {
 export const authClient = {
   login: async (email, password) => {
     try {
-      if (ENABLE_REQUEST_LOGGING) {
-        console.log(`Tentando fazer login com email: ${email}`);
-      }
+      console.log(`[Auth] Tentando fazer login com email: ${email}`);
       
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      const loginUrl = `${API_BASE_URL}/api/auth/login`;
+      console.log(`[Auth] URL de login: ${loginUrl}`);
+      
+      const loginData = { email, password };
+      console.log(`[Auth] Dados de login: ${JSON.stringify(loginData)}`);
+      
+      const response = await fetch(loginUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify(loginData)
       });
       
-      if (ENABLE_REQUEST_LOGGING) {
-        console.log('Resposta de login:', response.status, response.statusText);
-      }
+      console.log('[Auth] Resposta de login:', {
+        status: response.status, 
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries([...response.headers])
+      });
       
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[Auth] Erro na resposta: ${errorText}`);
         throw new Error(`Login failed: ${response.statusText}`);
       }
       
       const data = await response.json();
       
-      if (ENABLE_REQUEST_LOGGING) {
-        console.log('Login bem-sucedido, dados recebidos:', { 
-          user: data.user,
-          tokenRecebido: !!data.token
-        });
-      }
+      console.log('[Auth] Login bem-sucedido, dados recebidos:', { 
+        user: data.user,
+        tokenRecebido: !!data.token,
+        tokenTamanho: data.token ? data.token.length : 0
+      });
       
       // Limpar qualquer autenticação anterior
       localStorage.removeItem('auth_token');
@@ -378,13 +386,11 @@ export const authClient = {
       localStorage.setItem('auth_token', data.token);
       localStorage.setItem('auth_user', JSON.stringify(data.user));
       
-      if (ENABLE_REQUEST_LOGGING) {
-        console.log('Token e usuário armazenados no localStorage');
-      }
+      console.log('[Auth] Token e usuário armazenados no localStorage');
       
       return data;
     } catch (error) {
-      console.error('Error in login:', error);
+      console.error('[Auth] Erro em login:', error);
       throw error;
     }
   },

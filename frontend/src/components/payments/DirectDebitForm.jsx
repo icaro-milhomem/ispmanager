@@ -24,34 +24,9 @@ export default function DirectDebitForm({ onSubmit, amount, isProcessing, custom
   const [errors, setErrors] = useState({});
 
   const handleChange = (field, value) => {
-    let formattedValue = value;
-    
-    // Formatações específicas
-    if (field === 'agency') {
-      // Apenas números e um hífen
-      formattedValue = value
-        .replace(/[^\d-]/g, '')
-        .replace(/^(\d{4})-?(\d{0,1})$/, '$1-$2')
-        .replace(/^(\d{0,4})/, '$1');
-    } else if (field === 'account') {
-      // Apenas números e um hífen para o dígito verificador
-      formattedValue = value
-        .replace(/[^\d-]/g, '')
-        .replace(/^(\d{5,12})-?(\d{0,1})$/, '$1-$2')
-        .replace(/^(\d{0,12})/, '$1');
-    } else if (field === 'document') {
-      // CPF: 000.000.000-00
-      formattedValue = value
-        .replace(/\D/g, '')
-        .replace(/(\d{3})(\d)/, '$1.$2')
-        .replace(/(\d{3})(\d)/, '$1.$2')
-        .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
-        .substring(0, 14);
-    }
-    
     setBankData({
       ...bankData,
-      [field]: formattedValue
+      [field]: value
     });
     
     // Limpar erro específico do campo

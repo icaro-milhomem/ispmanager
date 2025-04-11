@@ -67,68 +67,7 @@ const processImageUrl = async (config) => {
   // Se não houver configuração ou URL do logo, retorna a configuração original
   if (!config || !config.company_logo_url) return config;
   
-  logInfo("Verificando URL da imagem:", config.company_logo_url?.substring(0, 30) + "...");
-  
-  // Se a URL já for base64, retorna a configuração original
-  if (config.company_logo_url?.startsWith('data:')) {
-    logInfo("Já é base64, mantendo como está");
-    return config;
-  }
-  
-  try {
-    // Se for uma URL que não é base64, tenta convertê-la
-    if (config.company_logo_url?.startsWith('http')) {
-      logInfo('Tentando converter URL para base64:', config.company_logo_url);
-      
-      // Cria uma imagem SVG de fallback para usar caso a conversão falhe
-      const fallbackImage = `data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='50' viewBox='0 0 150 50'%3E%3Crect fill='%23f0f0f0' width='150' height='50'/%3E%3Ctext fill='%23999' font-family='Arial' font-size='12' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3ELogo%3C/text%3E%3C/svg%3E`;
-      
-      try {
-        // Tenta buscar a imagem
-        const response = await fetch(config.company_logo_url, { mode: 'no-cors' });
-        
-        if (response.ok) {
-          const blob = await response.blob();
-          
-          return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              resolve({
-                ...config,
-                company_logo_url: reader.result
-              });
-            };
-            reader.readAsDataURL(blob);
-          });
-        } else {
-          logWarn("Não foi possível obter a imagem, usando fallback");
-          return {
-            ...config,
-            company_logo_url: fallbackImage
-          };
-        }
-      } catch (fetchError) {
-        logError("Erro ao buscar imagem:", fetchError);
-        return {
-          ...config,
-          company_logo_url: fallbackImage
-        };
-      }
-    }
-    
-    // Se não for base64 nem URL, usa uma imagem de fallback
-    logWarn("URL não reconhecida, usando fallback");
-    return {
-      ...config,
-      company_logo_url: `data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='50' viewBox='0 0 150 50'%3E%3Crect fill='%23f0f0f0' width='150' height='50'/%3E%3Ctext fill='%23999' font-family='Arial' font-size='12' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3ELogo%3C/text%3E%3C/svg%3E`
-    };
-  } catch (error) {
-    logError('Erro ao processar URL da imagem:', error);
-    return {
-      ...config,
-      company_logo_url: `data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='50' viewBox='0 0 150 50'%3E%3Crect fill='%23f0f0f0' width='150' height='50'/%3E%3Ctext fill='%23999' font-family='Arial' font-size='12' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3EErro%3C/text%3E%3C/svg%3E`
-    };
-  }
+  return config;
 };
 
 /**

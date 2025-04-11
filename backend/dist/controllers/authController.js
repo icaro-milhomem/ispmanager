@@ -17,26 +17,37 @@ const auth_1 = require("../utils/auth");
  */
 const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        console.log("Iniciando processo de login com corpo:", {
+            email: req.body.email,
+            temSenha: !!req.body.password
+        });
         const { email, password } = req.body;
         // Validação básica
         if (!email || !password) {
+            console.log("Erro de validação: email ou senha ausente");
             return res.status(400).json({ message: 'E-mail e senha são obrigatórios' });
         }
         // Busca o usuário pelo email
+        console.log(`Buscando usuário com email: ${email}`);
         const user = yield prisma_1.prisma.user.findUnique({
             where: { email }
         });
         // Verifica se o usuário existe
         if (!user) {
+            console.log(`Usuário não encontrado para o email: ${email}`);
             return res.status(401).json({ message: 'Credenciais inválidas' });
         }
+        console.log(`Usuário encontrado: ${user.id}, validando senha...`);
         // Verifica a senha
         const passwordValid = yield (0, auth_1.comparePassword)(password, user.password);
+        console.log(`Resultado de validação da senha: ${passwordValid}`);
         if (!passwordValid) {
+            console.log("Senha inválida");
             return res.status(401).json({ message: 'Credenciais inválidas' });
         }
         // Gera o token JWT
         const token = (0, auth_1.generateToken)(user);
+        console.log("Token JWT gerado com sucesso");
         // Retorna os dados do usuário (exceto a senha) e o token
         return res.json({
             user: {

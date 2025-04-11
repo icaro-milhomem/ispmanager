@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Customer } from "@/api/entities";
 import { Plan } from "@/api/entities";
@@ -68,17 +67,12 @@ export default function ContractsPage() {
 
       const formatCPF = (cpf) => {
         if (!cpf) return "";
-        const cleanCPF = cpf.replace(/\D/g, '');
-        if (cleanCPF.length !== 11) return cpf;
-        return cleanCPF.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+        return cpf;
       };
 
       const formatCurrency = (value) => {
         if (!value) return "";
-        return value.toLocaleString('pt-BR', {
-          style: 'currency',
-          currency: 'BRL'
-        });
+        return value;
       };
 
       const enderecoPartes = [];

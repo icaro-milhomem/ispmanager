@@ -58,16 +58,54 @@ export default function CustomerDetails({ customer, onEdit, onDelete, onBack }) 
   const loadInvoices = async () => {
     try {
       setLoadingInvoices(true);
-      const allInvoices = await Invoice.list();
-      const customerInvoices = allInvoices.filter(inv => inv.customer_id === customer.id);
-      setInvoices(customerInvoices);
-    } catch (error) {
-      console.error("Erro ao carregar faturas:", error);
-      toast({
-        title: "Erro ao carregar faturas",
-        description: "Não foi possível carregar as faturas do cliente",
-        variant: "destructive"
-      });
+      console.log("Iniciando carregamento de faturas para cliente:", customer.id);
+      
+      // Usar a API específica de cliente/faturas (agora sem autenticação)
+      try {
+        console.log("Tentando carregar faturas pela API customer/:id/invoices");
+        const response = await fetch(`${import.meta.env.VITE_API_URL || "http://api.econect.eco.br"}/api/customers/${customer.id}/invoices`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Erro na API: ${response.status} ${response.statusText}`);
+        }
+        
+        const customerInvoices = await response.json();
+        
+        console.log("Resposta da API cliente/faturas:", customerInvoices);
+        if (Array.isArray(customerInvoices) && customerInvoices.length > 0) {
+          // Converta as faturas do formato backend (camelCase) para o formato frontend (snake_case)
+          const formattedInvoices = customerInvoices.map(invoice => ({
+            id: invoice.id,
+            number: invoice.number,
+            customer_id: invoice.customerId,
+            amount: invoice.amount,
+            due_date: new Date(invoice.dueDate).toISOString().split('T')[0],
+            payment_date: invoice.paymentDate ? new Date(invoice.paymentDate).toISOString().split('T')[0] : null,
+            description: invoice.description,
+            status: invoice.status.toLowerCase(),
+            payment_method: invoice.paymentMethod || "bank_slip"
+          }));
+          
+          console.log("Faturas formatadas:", formattedInvoices);
+          setInvoices(formattedInvoices);
+        } else {
+          console.log("Nenhuma fatura encontrada para este cliente");
+          setInvoices([]);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar faturas:", error);
+        toast({
+          title: "Erro ao carregar faturas",
+          description: "Não foi possível carregar as faturas do cliente: " + error.message,
+          variant: "destructive"
+        });
+        setInvoices([]);
+      }
     } finally {
       setLoadingInvoices(false);
     }

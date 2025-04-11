@@ -116,16 +116,20 @@ exports.getInvoiceById = getInvoiceById;
  */
 const createInvoice = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { customerId, amount, dueDate, description } = req.body;
+        const { customerId, customer_id, amount, dueDate, due_date, description } = req.body;
+        // Aceitar customerId ou customer_id (compatibilidade com frontend)
+        const finalCustomerId = customerId || customer_id;
+        // Aceitar dueDate ou due_date (compatibilidade com frontend)
+        const finalDueDate = dueDate || due_date;
         // Validações básicas
-        if (!customerId || !amount || !dueDate) {
+        if (!finalCustomerId || !amount || !finalDueDate) {
             return res.status(400).json({
                 message: 'Cliente, valor e data de vencimento são obrigatórios'
             });
         }
         // Verifica se o cliente existe
         const customer = yield prisma_1.prisma.customer.findUnique({
-            where: { id: customerId }
+            where: { id: finalCustomerId }
         });
         if (!customer) {
             return res.status(400).json({ message: 'Cliente não encontrado' });
@@ -138,11 +142,11 @@ const createInvoice = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             data: {
                 number: invoiceNumber,
                 amount: Number(amount),
-                dueDate: new Date(dueDate),
+                dueDate: new Date(finalDueDate),
                 description,
                 status: 'PENDING',
                 customer: {
-                    connect: { id: customerId }
+                    connect: { id: finalCustomerId }
                 }
             }
         });

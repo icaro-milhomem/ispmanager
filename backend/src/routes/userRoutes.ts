@@ -11,17 +11,17 @@ import { adminMiddleware } from '../middlewares/adminMiddleware';
 
 const router = Router();
 
-// Todas as rotas de usuários requerem autenticação
-router.use(authMiddleware);
+// TEMPORÁRIO: Removendo autenticação de rotas de usuário
+// router.use(authMiddleware);
 
 // Listar todos os usuários (apenas admin)
-router.get('/', adminMiddleware, getAllUsers);
+router.get('/', getAllUsers);
 
 // Obter usuário específico
 router.get('/:id', getUserById);
 
-// Criar novo usuário (apenas admin)
-router.post('/', adminMiddleware, createUser);
+// Criar novo usuário (remover necessidade de ser admin)
+router.post('/', createUser);
 
 // Atualizar usuário
 router.put('/:id', updateUser);

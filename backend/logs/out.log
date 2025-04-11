@@ -1,0 +1,75 @@
+2025-04-10 23:33:35: Servidor rodando na porta 3000
+2025-04-10 23:33:35: Servidor rodando na porta 3000
+2025-04-10 23:44:00: Servidor rodando na porta 3000
+2025-04-10 23:44:00: Servidor rodando na porta 3000
+2025-04-11 13:54:14: Servidor rodando na porta 3000
+2025-04-11 13:54:14: Servidor rodando na porta 3000
+2025-04-11 14:05:25: Servidor rodando na porta 3000
+2025-04-11 14:05:25: Servidor rodando na porta 3000
+2025-04-11 15:05:11: Criando cliente com os dados: {
+  full_name: 'icaro araujo milhomem',
+  planId: '18e9f793-2fd6-4b37-b803-7367ef354c9c',
+  installation_date: '2025-04-11',
+  contract_number: 'CONT-202504-001'
+}
+2025-04-11 15:05:11: Verificando se existe o plano com ID: 18e9f793-2fd6-4b37-b803-7367ef354c9c
+2025-04-11 15:05:11: Plano encontrado? true
+2025-04-11 15:05:11: Cliente criado com sucesso: {
+  id: '90ae10a0-c251-48d0-8c2b-73c98f4ddefd',
+  name: 'icaro araujo milhomem',
+  planId: '18e9f793-2fd6-4b37-b803-7367ef354c9c',
+  contract_number: 'CONT-202504-001'
+}
+2025-04-11 15:09:39: Atualizando cliente com os dados: {
+  id: '90ae10a0-c251-48d0-8c2b-73c98f4ddefd',
+  full_name: 'icaro araujo milhomem',
+  planId: '18e9f793-2fd6-4b37-b803-7367ef354c9c',
+  installation_date: '2025-04-11',
+  contract_number: 'CONT-202504-001'
+}
+2025-04-11 15:09:39: Verificando se existe o plano com ID: 18e9f793-2fd6-4b37-b803-7367ef354c9c
+2025-04-11 15:09:39: Plano encontrado? true
+2025-04-11 15:09:39: Cliente atualizado com sucesso: {
+  id: '90ae10a0-c251-48d0-8c2b-73c98f4ddefd',
+  name: 'icaro araujo milhomem',
+  planId: '18e9f793-2fd6-4b37-b803-7367ef354c9c',
+  contract_number: 'CONT-202504-001'
+}
+2025-04-11 15:14:26: Servidor rodando na porta 3000
+2025-04-11 15:14:27: Servidor rodando na porta 3000
+2025-04-11 15:26:57: Arquivo recebido: Imagem do WhatsApp de 2025-04-10 Ã (s) 15.03.22_172569e1.jpg com metadados: {}
+2025-04-11 15:27:05: Arquivo recebido: Imagem do WhatsApp de 2025-04-08 Ã (s) 21.18.43_179548e6.jpg com metadados: {}
+2025-04-11 15:30:57: Servidor rodando na porta 3000
+2025-04-11 15:30:57: Servidor rodando na porta 3000
+2025-04-11 15:32:53: Servidor rodando na porta 3000
+2025-04-11 15:32:54: Servidor rodando na porta 3000
+2025-04-11 15:43:03: Servidor rodando na porta 3000
+2025-04-11 15:43:03: Servidor rodando na porta 3000
+2025-04-11 15:47:04: Servidor rodando na porta 3000
+2025-04-11 15:47:04: Servidor rodando na porta 3000
+2025-04-11 15:47:21: Iniciando processo de login com corpo: { email: 'icaro@gmaill.com', temSenha: true }
+2025-04-11 15:47:21: Buscando usuário com email: icaro@gmaill.com
+2025-04-11 15:47:21: Usuário não encontrado para o email: icaro@gmaill.com
+2025-04-11 15:47:39: Iniciando processo de login com corpo: { email: 'admin@ispmanager.com', temSenha: true }
+2025-04-11 15:47:39: Buscando usuário com email: admin@ispmanager.com
+2025-04-11 15:47:39: Usuário encontrado: 50fdc126-34c5-4941-a64f-a7b1de82488f, validando senha...
+2025-04-11 15:47:39: Resultado de validação da senha: true
+2025-04-11 15:47:40: Token JWT gerado com sucesso
+2025-04-11 15:55:58: Iniciando processo de login com corpo: { email: 'icaro@gmail.com', temSenha: true }
+2025-04-11 15:55:58: Buscando usuário com email: icaro@gmail.com
+2025-04-11 15:55:58: Usuário não encontrado para o email: icaro@gmail.com
+2025-04-11 15:58:29: Iniciando processo de login com corpo: { email: 'icaro@gmail.com', temSenha: true }
+2025-04-11 15:58:29: Buscando usuário com email: icaro@gmail.com
+2025-04-11 15:58:29: Usuário encontrado: 056a9d68-8bdf-4a8e-ba1b-0679826fc498, validando senha...
+2025-04-11 15:58:30: Resultado de validação da senha: true
+2025-04-11 15:58:30: Token JWT gerado com sucesso
+2025-04-11 15:58:52: Iniciando processo de login com corpo: { email: 'icaro@gmail.com', temSenha: true }
+2025-04-11 15:58:52: Buscando usuário com email: icaro@gmail.com
+2025-04-11 15:58:52: Usuário encontrado: 056a9d68-8bdf-4a8e-ba1b-0679826fc498, validando senha...
+2025-04-11 15:58:53: Resultado de validação da senha: true
+2025-04-11 15:58:53: Token JWT gerado com sucesso
+2025-04-11 15:59:42: Iniciando processo de login com corpo: { email: 'teste@gmail.com', temSenha: true }
+2025-04-11 15:59:42: Buscando usuário com email: teste@gmail.com
+2025-04-11 15:59:42: Usuário encontrado: adaabb77-d46a-4123-8b60-0651caa5ef09, validando senha...
+2025-04-11 15:59:43: Resultado de validação da senha: true
+2025-04-11 15:59:43: Token JWT gerado com sucesso

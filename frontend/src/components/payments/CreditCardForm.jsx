@@ -16,30 +16,9 @@ export default function CreditCardForm({ onSubmit, amount, isProcessing }) {
   const [errors, setErrors] = useState({});
 
   const handleChange = (field, value) => {
-    let formattedValue = value;
-    
-    // Formatações específicas
-    if (field === 'number') {
-      // Formatar como 0000 0000 0000 0000
-      formattedValue = value
-        .replace(/\D/g, '')
-        .replace(/(\d{4})(?=\d)/g, '$1 ')
-        .trim()
-        .substring(0, 19);
-    } else if (field === 'expiry') {
-      // Formatar como MM/AA
-      formattedValue = value
-        .replace(/\D/g, '')
-        .replace(/(\d{2})(?=\d)/, '$1/')
-        .substring(0, 5);
-    } else if (field === 'cvc') {
-      // Apenas números e máximo 4 dígitos
-      formattedValue = value.replace(/\D/g, '').substring(0, 4);
-    }
-    
     setCardData({
       ...cardData,
-      [field]: formattedValue
+      [field]: value
     });
     
     // Limpar erro específico do campo

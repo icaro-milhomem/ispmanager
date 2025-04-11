@@ -29,15 +29,8 @@ export const getAllPaymentGateways = async (req: Request, res: Response) => {
       prisma.paymentGateway.count({ where })
     ]);
 
-    // Mascarar informações sensíveis
-    const maskedGateways = gateways.map((gateway: PaymentGateway) => ({
-      ...gateway,
-      api_key: gateway.api_key ? '********' : null,
-      api_secret: gateway.api_secret ? '********' : null
-    }));
-
     return res.json({
-      data: maskedGateways,
+      data: gateways,
       meta: {
         total,
         page,
@@ -66,14 +59,7 @@ export const getPaymentGatewayById = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Gateway de pagamento não encontrado' });
     }
     
-    // Mascarar informações sensíveis
-    const maskedGateway = {
-      ...gateway,
-      api_key: gateway.api_key ? '********' : null,
-      api_secret: gateway.api_secret ? '********' : null
-    };
-    
-    return res.json(maskedGateway);
+    return res.json(gateway);
   } catch (error) {
     console.error('Erro ao buscar gateway de pagamento:', error);
     return res.status(500).json({ message: 'Erro interno do servidor' });

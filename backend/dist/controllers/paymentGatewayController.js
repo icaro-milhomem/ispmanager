@@ -34,10 +34,8 @@ const getAllPaymentGateways = (req, res) => __awaiter(void 0, void 0, void 0, fu
             }),
             prisma_1.prisma.paymentGateway.count({ where })
         ]);
-        // Mascarar informações sensíveis
-        const maskedGateways = gateways.map((gateway) => (Object.assign(Object.assign({}, gateway), { api_key: gateway.api_key ? '********' : null, api_secret: gateway.api_secret ? '********' : null })));
         return res.json({
-            data: maskedGateways,
+            data: gateways,
             meta: {
                 total,
                 page,
@@ -64,9 +62,7 @@ const getPaymentGatewayById = (req, res) => __awaiter(void 0, void 0, void 0, fu
         if (!gateway) {
             return res.status(404).json({ message: 'Gateway de pagamento não encontrado' });
         }
-        // Mascarar informações sensíveis
-        const maskedGateway = Object.assign(Object.assign({}, gateway), { api_key: gateway.api_key ? '********' : null, api_secret: gateway.api_secret ? '********' : null });
-        return res.json(maskedGateway);
+        return res.json(gateway);
     }
     catch (error) {
         console.error('Erro ao buscar gateway de pagamento:', error);

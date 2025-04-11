@@ -357,21 +357,21 @@ model BillingSchedule {
 }
 
 model RouterIntegration {
-  id                String    @id @default(uuid())
-  name              String
-  type              String
-  host              String
-  port              Int
+  id                 String    @id @default(uuid())
+  name               String
+  type               String
+  host               String
+  port               Int
   integration_method String
-  username          String
-  password          String?
-  api_key           String?
-  status            String    @default("active")
-  is_primary        Boolean   @default(false)
-  last_sync         DateTime?
-  notes             String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  username           String
+  password           String?
+  api_key            String?
+  status             String    @default("active")
+  is_primary         Boolean   @default(false)
+  last_sync          DateTime?
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 }
 
 model ConfigEntry {
@@ -386,21 +386,21 @@ model ConfigEntry {
 }
 
 model InventoryItem {
-  id              String   @id @default(uuid())
+  id              String    @id @default(uuid())
   name            String
   description     String?
   category        String
-  quantity        Int      @default(0)
+  quantity        Int       @default(0)
   unit_price      Float
-  status          String   @default("active")
+  status          String    @default("active")
   supplier        String?
   location        String?
   serial_number   String?
   purchase_date   DateTime?
   warranty_expiry DateTime?
   notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 enum Role {

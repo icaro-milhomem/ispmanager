@@ -45,38 +45,31 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const bcrypt = __importStar(require("bcryptjs"));
 const prisma = new client_1.PrismaClient();
-function main() {
+function createAdmin() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            // Verificar se já existe um usuário admin
-            const existingAdmin = yield prisma.user.findFirst({
-                where: {
-                    email: 'admin@teste.com'
-                }
-            });
-            if (existingAdmin) {
-                console.log('O usuário administrador já existe:', existingAdmin.email);
-                return;
-            }
-            // Criar senha criptografada
-            const hashedPassword = yield bcrypt.hash('senha123', 10);
-            // Criar usuário admin
-            const admin = yield prisma.user.create({
-                data: {
-                    name: 'Administrador',
-                    email: 'admin@teste.com',
+            const hashedPassword = yield bcrypt.hash('admin123', 10);
+            const admin = yield prisma.user.upsert({
+                where: { email: 'admin@ispmanager.com' },
+                update: {
                     password: hashedPassword,
+                    role: 'ADMIN'
+                },
+                create: {
+                    email: 'admin@ispmanager.com',
+                    password: hashedPassword,
+                    name: 'Administrador',
                     role: 'ADMIN'
                 }
             });
-            console.log('Usuário administrador criado com sucesso:', admin);
+            console.log('Admin user created/updated:', admin);
         }
         catch (error) {
-            console.error('Erro ao criar usuário administrador:', error);
+            console.error('Error creating admin user:', error);
         }
         finally {
             yield prisma.$disconnect();
         }
     });
 }
-main();
+createAdmin();
