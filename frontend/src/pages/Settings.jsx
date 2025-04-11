@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { UploadFile } from "@/api/integrations";
+import { User } from "@/api/entities";
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -67,7 +68,7 @@ export default function SettingsPage() {
     full_name: "",
     email: "",
     password: "",
-    role: "user"
+    role: "staff"
   });
 
   useEffect(() => {
@@ -301,7 +302,7 @@ export default function SettingsPage() {
     }
   };
 
-  const handleAddUser = () => {
+  const handleAddUser = async () => {
     try {
       if (!newUser.full_name || !newUser.email || !newUser.password) {
         toast({
@@ -312,22 +313,40 @@ export default function SettingsPage() {
         return;
       }
 
-      const existingUsers = JSON.parse(sessionStorage.getItem("usersData") || "[]");
-
-      if (existingUsers.some(u => u.email === newUser.email)) {
-        toast({
-          title: "Erro",
-          description: "Este email já está em uso",
-          variant: "destructive"
-        });
-        return;
+      // Mapeia a função do usuário para o formato esperado pelo backend
+      let mappedRole;
+      switch (newUser.role.toLowerCase()) {
+        case 'admin':
+          mappedRole = 'ADMIN';
+          break;
+        case 'technician':
+        case 'tecnico':
+          mappedRole = 'TECHNICIAN';
+          break;
+        default:
+          mappedRole = 'STAFF'; // valor padrão para qualquer outra função
       }
 
-      const newUserData = {
-        ...newUser,
-        id: Date.now().toString(),
+      // Converte o formato do usuário para o formato esperado pela API
+      const userData = {
+        name: newUser.full_name,
+        email: newUser.email,
+        password: newUser.password,
+        role: mappedRole // Função mapeada para o formato correto
       };
 
+      console.log("Enviando dados do usuário para API:", userData);
+      
+      // Chama a API para criar o usuário no backend
+      const createdUser = await User.create(userData);
+      console.log("Usuário criado com sucesso na API:", createdUser);
+      
+      // Atualiza também o armazenamento local para manter a consistência
+      const existingUsers = JSON.parse(sessionStorage.getItem("usersData") || "[]");
+      const newUserData = {
+        ...newUser,
+        id: createdUser.id || createdUser.user?.id || Date.now().toString(),
+      };
       existingUsers.push(newUserData);
       sessionStorage.setItem("usersData", JSON.stringify(existingUsers));
 
@@ -337,7 +356,7 @@ export default function SettingsPage() {
         full_name: "",
         email: "",
         password: "",
-        role: "user"
+        role: "staff"  // Alterado de "user" para "staff" (valor padrão válido)
       });
 
       toast({
@@ -348,7 +367,7 @@ export default function SettingsPage() {
       console.error("Erro ao adicionar usuário:", error);
       toast({
         title: "Erro",
-        description: "Ocorreu um erro ao adicionar o usuário",
+        description: "Ocorreu um erro ao adicionar o usuário: " + (error.message || "Erro de comunicação com o servidor"),
         variant: "destructive"
       });
     }
@@ -497,18 +516,9 @@ export default function SettingsPage() {
                       <Input
                         id="company_logo_url"
                         name="company_logo_url"
-                        value={configData.company_logo_url?.startsWith('data:') 
-                          ? configData.company_logo_url.substring(0, 30) + '...' 
-                          : configData.company_logo_url || ''}
+                        value={configData.company_logo_url || ''}
                         onChange={handleInputChange}
-                        placeholder="Upload de imagem recomendado"
-                        disabled={configData.company_logo_url?.startsWith('data:')}
-                        title={configData.company_logo_url?.startsWith('data:') 
-                          ? "Imagem em formato base64 (não editável diretamente)" 
-                          : "URL da imagem de logo"}
-                        className={configData.company_logo_url?.startsWith('data:') 
-                          ? "bg-gray-100 text-gray-500 cursor-not-allowed" 
-                          : ""}
+                        placeholder="URL da imagem de logo"
                       />
                       <div className="relative">
                         <input
@@ -928,11 +938,12 @@ export default function SettingsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Administrador (acesso total)</SelectItem>
-                  <SelectItem value="user">Usuário (acesso limitado)</SelectItem>
+                  <SelectItem value="staff">Funcionário (acesso padrão)</SelectItem>
+                  <SelectItem value="technician">Técnico (acesso técnico)</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-gray-500">
-                Administradores têm acesso total ao sistema. Usuários têm acesso limitado.
+                Administradores têm acesso total ao sistema. Funcionários e técnicos têm acesso específico.
               </p>
             </div>
           </div>
@@ -945,7 +956,7 @@ export default function SettingsPage() {
                   full_name: "",
                   email: "",
                   password: "",
-                  role: "user"
+                  role: "staff"
                 });
               }}
             >
