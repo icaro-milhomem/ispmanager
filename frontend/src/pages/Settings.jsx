@@ -1036,7 +1036,7 @@ export default function SettingsPage() {
               </p>
               
               <div className="flex justify-end">
-                <Button onClick={handleSaveConfig} disabled={saving} className="bg-blue-600">
+                <Button onClick={handleSubmit} disabled={saving} className="bg-blue-600">
                   {saving ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
