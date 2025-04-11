@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -32,20 +31,6 @@ import ClientTickets from "../components/portal/ClientTickets";
 import ClientPlans from "../components/portal/ClientPlans";
 import ClientHelpCenter from "../components/portal/ClientHelpCenter";
 
-// Dados de cliente padrão para demonstração
-const DEMO_CLIENT = {
-  id: "demo-client",
-  full_name: "João da Silva",
-  email: "cliente@email.com",
-  phone: "(11) 98765-4321",
-  address: "Av. Paulista, 1000, São Paulo - SP",
-  cpf: "123.456.789-00",
-  contract_number: "20240101-1234",
-  plan: "standard",
-  status: "active",
-  created_date: "2023-01-15T10:30:00.000Z"
-};
-
 export default function CustomerPortal() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -59,7 +44,7 @@ export default function CustomerPortal() {
   const [error, setError] = useState(null);
   const [loginMethod, setLoginMethod] = useState("cpf"); // cpf ou contrato
 
-  // Simulação de login do cliente
+  // Login do cliente
   useEffect(() => {
     const clientLoggedIn = sessionStorage.getItem("clientLoggedIn") === "true";
     const clientId = sessionStorage.getItem("clientId");
@@ -80,10 +65,8 @@ export default function CustomerPortal() {
       const customers = await Customer.list();
       let client = customers.find(c => c.id === clientId);
       
-      // Se não encontrar cliente com esse ID, usar o cliente de demonstração
       if (!client) {
-        console.log("Cliente não encontrado, usando dados de demonstração");
-        client = DEMO_CLIENT;
+        throw new Error("Cliente não encontrado no sistema");
       }
       
       setClientData(client);
@@ -150,24 +133,12 @@ export default function CustomerPortal() {
         setLoggedIn(true);
         loadClientData(foundClient.id);
       } else {
-        // Para fins de demonstração, permitir acesso com CPF ou contrato específico
-        if ((loginMethod === "cpf" && identifier === "123.456.789-00") || 
-            (loginMethod === "contrato" && identifier === "20240101-1234")) {
-          
-          sessionStorage.setItem("clientLoggedIn", "true");
-          sessionStorage.setItem("clientId", "demo-client");
-          setLoggedIn(true);
-          setClientData(DEMO_CLIENT);
-          setLoading(false);
-        } else {
-          alert(`${loginMethod === "cpf" ? "CPF" : "Número de contrato"} não encontrado. Use ${loginMethod === "cpf" ? "123.456.789-00" : "20240101-1234"} para demo.`);
-          setLoading(false);
-        }
+        alert(`${loginMethod === "cpf" ? "CPF" : "Número de contrato"} não encontrado. Por favor, verifique as informações e tente novamente.`);
+        setLoading(false);
       }
     } catch (error) {
       console.error("Erro ao autenticar:", error);
       alert("Erro ao realizar login. Tente novamente.");
-    } finally {
       setLoading(false);
     }
   };
@@ -241,9 +212,8 @@ export default function CustomerPortal() {
                   <input
                     id="identifier"
                     type="text"
-                    placeholder={loginMethod === "cpf" ? "123.456.789-00" : "AAAAMMDD-XXXX"}
+                    placeholder={loginMethod === "cpf" ? "000.000.000-00" : "AAAAMMDD-XXXX"}
                     className="w-full px-3 py-2 border rounded-md"
-                    defaultValue={loginMethod === "cpf" ? "123.456.789-00" : "20240101-1234"}
                   />
                 </div>
 
@@ -254,15 +224,6 @@ export default function CustomerPortal() {
                   Entrar
                 </button>
               </form>
-
-              <div className="mt-6 text-center text-sm text-gray-500">
-                <p>Use as credenciais de demonstração:</p>
-                {loginMethod === "cpf" ? (
-                  <p className="mt-1 font-medium">CPF: 123.456.789-00</p>
-                ) : (
-                  <p className="mt-1 font-medium">Nº Contrato: 20240101-1234</p>
-                )}
-              </div>
               
               <div className="mt-6 pt-6 border-t border-gray-200 text-center">
                 <button 
