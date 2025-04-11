@@ -62,7 +62,17 @@ export default function SettingsPage() {
     smtp_pass: "",
     login_background_color: "#f9fafb",
     login_text_color: "#1f2937",
-    login_button_color: "#2563eb"
+    login_button_color: "#2563eb",
+    default_due_day: 10,
+    grace_period: 3,
+    late_fee: 2,
+    daily_interest: 0.033,
+    default_payment_method: "BANK_SLIP",
+    bank_account_name: "",
+    bank_code: "",
+    bank_agency: "",
+    bank_account: "",
+    bank_wallet: "",
   });
   const [newUser, setNewUser] = useState({
     full_name: "",
@@ -848,8 +858,198 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle>Configurações de Faturamento</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p>Configurações de faturamento serão adicionadas em breve.</p>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Padrões de Faturamento</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="default_due_day">Dia de Vencimento Padrão</Label>
+                      <Input 
+                        id="default_due_day" 
+                        type="number" 
+                        min="1" 
+                        max="28" 
+                        placeholder="10" 
+                        value={configData.default_due_day || "10"}
+                        onChange={(e) => setConfigData({
+                          ...configData,
+                          default_due_day: e.target.value
+                        })}
+                      />
+                      <p className="text-sm text-gray-500">Dia do mês para vencimento das faturas (1-28)</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="grace_period">Dias de Carência</Label>
+                      <Input 
+                        id="grace_period" 
+                        type="number" 
+                        min="0" 
+                        placeholder="3" 
+                        value={configData.grace_period || "3"} 
+                        onChange={(e) => setConfigData({
+                          ...configData,
+                          grace_period: e.target.value
+                        })}
+                      />
+                      <p className="text-sm text-gray-500">Dias adicionais após vencimento antes de aplicar juros/multa</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="late_fee">Multa por Atraso (%)</Label>
+                      <Input 
+                        id="late_fee" 
+                        type="number" 
+                        min="0" 
+                        max="20" 
+                        step="0.01" 
+                        placeholder="2" 
+                        value={configData.late_fee || "2"} 
+                        onChange={(e) => setConfigData({
+                          ...configData,
+                          late_fee: e.target.value
+                        })}
+                      />
+                      <p className="text-sm text-gray-500">Percentual de multa aplicado após o vencimento (ex: 2%)</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="daily_interest">Juros Diários (%)</Label>
+                      <Input 
+                        id="daily_interest" 
+                        type="number" 
+                        min="0" 
+                        max="1" 
+                        step="0.001" 
+                        placeholder="0.033" 
+                        value={configData.daily_interest || "0.033"} 
+                        onChange={(e) => setConfigData({
+                          ...configData,
+                          daily_interest: e.target.value
+                        })}
+                      />
+                      <p className="text-sm text-gray-500">Percentual de juros por dia de atraso (ex: 0.033% = 1% ao mês)</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Integrações Bancárias</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="default_payment_method">Método de Pagamento Padrão</Label>
+                      <Select 
+                        value={configData.default_payment_method || "BANK_SLIP"} 
+                        onValueChange={(value) => setConfigData({
+                          ...configData,
+                          default_payment_method: value
+                        })}
+                      >
+                        <SelectTrigger id="default_payment_method">
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="BANK_SLIP">Boleto Bancário</SelectItem>
+                          <SelectItem value="CREDIT_CARD">Cartão de Crédito</SelectItem>
+                          <SelectItem value="PIX">PIX</SelectItem>
+                          <SelectItem value="CASH">Dinheiro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-gray-500">Método de pagamento oferecido por padrão aos clientes</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="bank_account_name">Nome do Banco</Label>
+                      <Input 
+                        id="bank_account_name" 
+                        placeholder="Banco Principal" 
+                        value={configData.bank_account_name || ""} 
+                        onChange={(e) => setConfigData({
+                          ...configData,
+                          bank_account_name: e.target.value
+                        })}
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="bank_code">Código do Banco</Label>
+                        <Input 
+                          id="bank_code" 
+                          placeholder="000" 
+                          value={configData.bank_code || ""} 
+                          onChange={(e) => setConfigData({
+                            ...configData,
+                            bank_code: e.target.value
+                          })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="bank_agency">Agência</Label>
+                        <Input 
+                          id="bank_agency" 
+                          placeholder="0000" 
+                          value={configData.bank_agency || ""} 
+                          onChange={(e) => setConfigData({
+                            ...configData,
+                            bank_agency: e.target.value
+                          })}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="bank_account">Conta</Label>
+                        <Input 
+                          id="bank_account" 
+                          placeholder="00000-0" 
+                          value={configData.bank_account || ""} 
+                          onChange={(e) => setConfigData({
+                            ...configData,
+                            bank_account: e.target.value
+                          })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="bank_wallet">Carteira</Label>
+                        <Input 
+                          id="bank_wallet" 
+                          placeholder="00" 
+                          value={configData.bank_wallet || ""} 
+                          onChange={(e) => setConfigData({
+                            ...configData,
+                            bank_wallet: e.target.value
+                          })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <p className="text-sm text-gray-500 py-2 px-3 bg-blue-50 rounded-md border border-blue-100">
+                Nota: Para adicionar gateways de pagamento mais avançados (como integração com PagSeguro, Mercado Pago, etc.), acesse a seção "Gateways de Pagamento" em Faturamento.
+              </p>
+              
+              <div className="flex justify-end">
+                <Button onClick={handleSaveConfig} disabled={saving} className="bg-blue-600">
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Salvar Configurações
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
