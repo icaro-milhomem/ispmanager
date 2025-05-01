@@ -217,6 +217,8 @@ model NetworkIssue {
   resolution         String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
+
+  @@map("network_issues")
 }
 
 model EquipmentBrand {
@@ -386,21 +388,147 @@ model ConfigEntry {
 }
 
 model InventoryItem {
-  id              String    @id @default(uuid())
+  id              String                 @id @default(uuid())
   name            String
   description     String?
   category        String
-  quantity        Int       @default(0)
+  quantity        Int                    @default(0)
   unit_price      Float
-  status          String    @default("active")
+  status          String                 @default("active")
   supplier        String?
   location        String?
   serial_number   String?
   purchase_date   DateTime?
   warranty_expiry DateTime?
   notes           String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  transactions    InventoryTransaction[]
+
+  @@map("inventory_items")
+}
+
+model InventoryTransaction {
+  id        String        @id @default(uuid())
+  itemId    String
+  type      String
+  quantity  Int
+  date      DateTime      @default(now())
+  notes     String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  item      InventoryItem @relation(fields: [itemId], references: [id])
+
+  @@map("inventory_transactions")
+}
+
+model CTO {
+  id                String           @id @default(uuid())
+  name              String           @unique
+  latitude          Float
+  longitude         Float
+  capacity          Int              @default(16)
+  address           String?
+  notes             String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  status            String           @default("active")
+  sourceConnections FTTHConnection[] @relation("SourceConnections")
+  targetConnections FTTHConnection[] @relation("TargetConnections")
+  ports             Port[]
+
+  @@map("ctos")
+}
+
+model Port {
+  id         String   @id @default(uuid())
+  number     Int
+  status     String   @default("available")
+  clientName String?
+  clientId   String?
+  ctoId      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+  cto        CTO?     @relation(fields: [ctoId], references: [id])
+
+  @@map("ports")
+}
+
+model Fiber {
+  id         String     @id @default(uuid())
+  name       String
+  color      String
+  length     Float
+  type       String
+  status     String     @default("active")
+  notes      String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  coeInputs  COE[]      @relation("FiberInput")
+  coeOutputs COE[]      @relation("FiberOutput")
+  splitters  Splitter[]
+
+  @@map("fibers")
+}
+
+model Splitter {
+  id        String   @id @default(uuid())
+  name      String
+  ratio     String
+  type      String
+  location  String?
+  latitude  Float
+  longitude Float
+  status    String   @default("active")
+  fiberId   String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  fiber     Fiber    @relation(fields: [fiberId], references: [id])
+
+  @@map("splitters")
+}
+
+model COE {
+  id            String   @id @default(uuid())
+  name          String
+  type          String
+  location      String?
+  latitude      Float
+  longitude     Float
+  status        String   @default("active")
+  capacity      Int      @default(12)
+  inputFiberId  String
+  outputFiberId String
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  inputFiber    Fiber    @relation("FiberInput", fields: [inputFiberId], references: [id])
+  outputFiber   Fiber    @relation("FiberOutput", fields: [outputFiberId], references: [id])
+
+  @@map("coes")
+}
+
+model FTTHConnection {
+  id               String   @id @default(uuid())
+  type             String
+  fibers           Int
+  color            String
+  coordinates      Json
+  hasSplitter      Boolean  @default(false)
+  splitterType     String?
+  splitterRatio    String?
+  splitterLocation String?
+  sourceId         String?
+  targetId         String?
+  status           String   @default("active")
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  source           CTO?     @relation("SourceConnections", fields: [sourceId], references: [id])
+  target           CTO?     @relation("TargetConnections", fields: [targetId], references: [id])
+
+  @@map("ftth_connections")
 }
 
 enum Role {
@@ -466,7 +594,6 @@ enum NodeType {
   SWITCH
   ACCESS_POINT
   ONU
-  OLT
   SERVER
 }
 

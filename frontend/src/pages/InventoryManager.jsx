@@ -931,13 +931,11 @@ export default function InventoryManager() {
                       <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ont">ONT/ONU</SelectItem>
                       <SelectItem value="router">Roteador</SelectItem>
                       <SelectItem value="switch">Switch</SelectItem>
-                      <SelectItem value="olt">OLT</SelectItem>
-                      <SelectItem value="radio">Rádio</SelectItem>
-                      <SelectItem value="servidor">Servidor</SelectItem>
-                      <SelectItem value="outro">Outro</SelectItem>
+                      <SelectItem value="ap">Access Point</SelectItem>
+                      <SelectItem value="onu">ONU</SelectItem>
+                      <SelectItem value="server">Servidor</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

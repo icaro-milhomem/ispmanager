@@ -26,46 +26,36 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function NetworkTopology({ networkData = { nodes: [], links: [] }, onNodeClick }) {
   const svgRef = useRef(null);
   const [selectedNode, setSelectedNode] = useState(null);
   const [zoom, setZoom] = useState(1);
   const [filters, setFilters] = useState({
-    showOLTs: true,
     showCTOs: true,
     showClients: true,
-    showSplitters: true
+    showConnections: true
   });
   
-  // Cores para os diferentes tipos de nós
-  const nodeColors = {
-    OLT: "#FF4500",
-    CTO: "#32CD32",
-    SPLITTER: "#FFA500",
-    CLIENT: "#1E90FF"
+  const colors = {
+    CTO: "#2563eb",
+    Client: "#16a34a",
+    Connection: "#6b7280"
   };
   
-  // Ícones para os diferentes tipos de nós
-  const nodeIcons = {
-    OLT: <Router className="w-4 h-4" />,
-    CTO: <Network className="w-4 h-4" />,
-    SPLITTER: <Box className="w-4 h-4" />,
-    CLIENT: <Home className="w-4 h-4" />
+  const icons = {
+    CTO: <Box className="w-4 h-4" />,
+    Client: <Home className="w-4 h-4" />
   };
-  
-  // Como não podemos usar D3.js diretamente via CDN, vamos criar uma visualização básica
-  // com React e SVG puro para representar a topologia
   
   const renderNetwork = () => {
     if (!networkData.nodes.length) return null;
     
-    // Aplicar filtros aos nós
+    // Filtrar nós baseado nas configurações
     const filteredNodes = networkData.nodes.filter(node => {
-      if (node.type === 'OLT' && !filters.showOLTs) return false;
       if (node.type === 'CTO' && !filters.showCTOs) return false;
-      if (node.type === 'SPLITTER' && !filters.showSplitters) return false;
-      if (node.type === 'CLIENT' && !filters.showClients) return false;
+      if (node.type === 'Client' && !filters.showClients) return false;
       return true;
     });
     
@@ -76,24 +66,22 @@ export default function NetworkTopology({ networkData = { nodes: [], links: [] }
       return sourceExists && targetExists;
     });
     
-    // Organizar nós em níveis para uma visualização hierárquica simples
-    const levels = {
-      OLT: { y: 50, nodes: [] },
-      SPLITTER: { y: 150, nodes: [] },
-      CTO: { y: 250, nodes: [] },
-      CLIENT: { y: 350, nodes: [] }
+    // Organizar nós por tipo
+    const nodesByType = {
+      CTO: { y: 50, nodes: [] },
+      Client: { y: 150, nodes: [] }
     };
     
     // Distribuir nós nos níveis
     filteredNodes.forEach(node => {
-      if (levels[node.type]) {
-        levels[node.type].nodes.push(node);
+      if (nodesByType[node.type]) {
+        nodesByType[node.type].nodes.push(node);
       }
     });
     
     // Calcular posições x para cada nível, distribuindo uniformemente
-    Object.keys(levels).forEach(level => {
-      const nodesInLevel = levels[level].nodes;
+    Object.keys(nodesByType).forEach(level => {
+      const nodesInLevel = nodesByType[level].nodes;
       const totalWidth = 800;
       const margin = 50;
       const availableWidth = totalWidth - 2 * margin;
@@ -102,7 +90,7 @@ export default function NetworkTopology({ networkData = { nodes: [], links: [] }
         const spacing = availableWidth / (nodesInLevel.length + 1);
         nodesInLevel.forEach((node, index) => {
           node.x = margin + spacing * (index + 1);
-          node.y = levels[level].y;
+          node.y = nodesByType[level].y;
         });
       }
     });
@@ -121,11 +109,7 @@ export default function NetworkTopology({ networkData = { nodes: [], links: [] }
           y1={source.y}
           x2={target.x}
           y2={target.y}
-          stroke={
-            (source.type === "OLT" || target.type === "OLT") ? "#FF4500" :
-            (source.type === "SPLITTER" || target.type === "SPLITTER") ? "#FFA500" :
-            "#6495ED"
-          }
+          stroke={colors.Connection}
           strokeWidth={link.capacity ? Math.log(link.capacity) * 0.5 + 1 : 1.5}
           strokeOpacity={0.6}
         />
@@ -145,31 +129,17 @@ export default function NetworkTopology({ networkData = { nodes: [], links: [] }
           style={{ cursor: 'pointer' }}
         >
           <circle
-            r={
-              node.type === "OLT" ? 12 :
-              node.type === "CTO" ? (node.capacity ? Math.sqrt(node.capacity) + 5 : 8) :
-              node.type === "SPLITTER" ? 7 :
-              5 // Cliente
-            }
-            fill={nodeColors[node.type] || "#999"}
+            r={getNodeSize(node)}
+            fill={colors[node.type] || "#999"}
             stroke="#fff"
             strokeWidth={1.5}
           />
           <text
             dy="0.35em"
             textAnchor="middle"
-            fontSize={
-              node.type === "OLT" ? "12px" :
-              node.type === "CTO" ? "10px" :
-              "8px"
-            }
+            fontSize={getLabelFontSize(node)}
             fill="#333"
-            y={
-              node.type === "OLT" ? -18 :
-              node.type === "CTO" ? -14 :
-              node.type === "SPLITTER" ? -12 : 
-              -10
-            }
+            y={getLabelYOffset(node)}
             style={{ 
               pointerEvents: "none", 
               userSelect: "none",
@@ -206,16 +176,36 @@ export default function NetworkTopology({ networkData = { nodes: [], links: [] }
   };
   
   // Toggle de um tipo de filtro
-  const toggleFilter = (filterName) => {
+  const toggleFilter = (key) => {
     setFilters(prev => ({
       ...prev,
-      [filterName]: !prev[filterName]
+      [key]: !prev[key]
     }));
   };
   
   // Exportar como PNG (funcionalidade simplificada)
   const exportAsPNG = () => {
     alert("Funcionalidade de exportação não disponível nesta versão simplificada");
+  };
+  
+  // Definir cores das conexões
+  const getConnectionColor = (source, target) => {
+    return colors.Connection;
+  };
+  
+  // Definir tamanho dos nós
+  const getNodeSize = (node) => {
+    return node.type === "CTO" ? 12 : 8;
+  };
+  
+  // Definir tamanho da fonte dos labels
+  const getLabelFontSize = (node) => {
+    return node.type === "CTO" ? "12px" : "10px";
+  };
+  
+  // Definir posição vertical do label
+  const getLabelYOffset = (node) => {
+    return node.type === "CTO" ? -18 : -14;
   };
   
   return (
@@ -234,28 +224,22 @@ export default function NetworkTopology({ networkData = { nodes: [], links: [] }
               <DropdownMenuLabel>Exibir elementos</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuCheckboxItem
-                checked={filters.showOLTs}
-                onCheckedChange={() => toggleFilter("showOLTs")}
-              >
-                OLTs
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
                 checked={filters.showCTOs}
                 onCheckedChange={() => toggleFilter("showCTOs")}
               >
                 CTOs
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
-                checked={filters.showSplitters}
-                onCheckedChange={() => toggleFilter("showSplitters")}
-              >
-                Splitters
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
                 checked={filters.showClients}
                 onCheckedChange={() => toggleFilter("showClients")}
               >
                 Clientes
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={filters.showConnections}
+                onCheckedChange={() => toggleFilter("showConnections")}
+              >
+                Conexões
               </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -280,7 +264,7 @@ export default function NetworkTopology({ networkData = { nodes: [], links: [] }
       <CardContent>
         <div className="mb-4 flex justify-between items-center">
           <div className="flex gap-4">
-            {Object.entries(nodeColors).map(([type, color]) => (
+            {Object.entries(colors).map(([type, color]) => (
               <div key={type} className="flex items-center gap-1">
                 <div 
                   className="w-3 h-3 rounded-full" 
@@ -325,7 +309,7 @@ export default function NetworkTopology({ networkData = { nodes: [], links: [] }
                 <h3 className="font-medium">{selectedNode.name}</h3>
                 <Badge 
                   style={{ 
-                    backgroundColor: nodeColors[selectedNode.type],
+                    backgroundColor: colors[selectedNode.type],
                     color: "white"
                   }}
                 >
@@ -387,20 +371,12 @@ export default function NetworkTopology({ networkData = { nodes: [], links: [] }
                   <span>{networkData.nodes.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>OLTs:</span>
-                  <span>{networkData.nodes.filter(n => n.type === "OLT").length}</span>
-                </div>
-                <div className="flex justify-between">
                   <span>CTOs:</span>
                   <span>{networkData.nodes.filter(n => n.type === "CTO").length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Splitters:</span>
-                  <span>{networkData.nodes.filter(n => n.type === "SPLITTER").length}</span>
-                </div>
-                <div className="flex justify-between">
                   <span>Clientes:</span>
-                  <span>{networkData.nodes.filter(n => n.type === "CLIENT").length}</span>
+                  <span>{networkData.nodes.filter(n => n.type === "Client").length}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Conexões:</span>
@@ -414,11 +390,11 @@ export default function NetworkTopology({ networkData = { nodes: [], links: [] }
             <CardContent className="p-4">
               <h3 className="font-medium mb-2">Legenda</h3>
               <div className="grid grid-cols-2 gap-2">
-                {Object.entries(nodeIcons).map(([type, icon]) => (
+                {Object.entries(icons).map(([type, icon]) => (
                   <div key={type} className="flex items-center gap-2">
                     <div 
                       className="w-6 h-6 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: nodeColors[type] }}
+                      style={{ backgroundColor: colors[type] }}
                     >
                       {React.cloneElement(icon, { className: "w-3 h-3 text-white" })}
                     </div>

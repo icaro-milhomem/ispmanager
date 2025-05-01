@@ -90,11 +90,9 @@ export default function EquipmentForm({ equipment, customers, onSubmit, onCancel
                 <SelectContent>
                   <SelectItem value="router">Roteador</SelectItem>
                   <SelectItem value="switch">Switch</SelectItem>
-                  <SelectItem value="ont">ONT</SelectItem>
-                  <SelectItem value="olt">OLT</SelectItem>
-                  <SelectItem value="radio">Rádio</SelectItem>
-                  <SelectItem value="servidor">Servidor</SelectItem>
-                  <SelectItem value="outro">Outro</SelectItem>
+                  <SelectItem value="ap">Access Point</SelectItem>
+                  <SelectItem value="onu">ONU</SelectItem>
+                  <SelectItem value="server">Servidor</SelectItem>
                 </SelectContent>
               </Select>
             </div>

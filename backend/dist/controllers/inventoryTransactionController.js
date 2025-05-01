@@ -10,62 +10,59 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteInventoryTransaction = exports.updateInventoryTransaction = exports.createInventoryTransaction = exports.getInventoryTransactionById = exports.getAllInventoryTransactions = void 0;
-const uuid_1 = require("uuid");
-// Simulação de banco de dados em memória
-let inventoryTransactions = [
-    {
-        id: '1',
-        type: 'ENTRADA',
-        item_id: '1',
-        quantity: 5,
-        unit_price: 349.90,
-        total_price: 1749.50,
-        date: new Date('2024-03-15'),
-        description: 'Compra de roteadores Mikrotik para estoque',
-        reference_number: 'NF-23456',
-        user_id: 'ccf6f644-cee3-4fe4-8bd5-61f45668b4e9',
-        supplier: 'Distribuidora de Redes',
-        createdAt: new Date('2024-03-15'),
-        updatedAt: new Date('2024-03-15')
-    },
-    {
-        id: '2',
-        type: 'SAÍDA',
-        item_id: '1',
-        quantity: 2,
-        unit_price: 349.90,
-        total_price: 699.80,
-        date: new Date('2024-03-20'),
-        description: 'Instalação em cliente',
-        reference_number: 'OS-12345',
-        user_id: 'ccf6f644-cee3-4fe4-8bd5-61f45668b4e9',
-        customer_id: '5f8d4e3c-2b1a-9c8d-7e6f-5d4c3b2a1098',
-        createdAt: new Date('2024-03-20'),
-        updatedAt: new Date('2024-03-20')
-    },
-    {
-        id: '3',
-        type: 'ENTRADA',
-        item_id: '2',
-        quantity: 100,
-        unit_price: 2.50,
-        total_price: 250.00,
-        date: new Date('2024-03-25'),
-        description: 'Compra de cabo de rede',
-        reference_number: 'NF-34567',
-        user_id: 'ccf6f644-cee3-4fe4-8bd5-61f45668b4e9',
-        supplier: 'Cabo Brasil',
-        createdAt: new Date('2024-03-25'),
-        updatedAt: new Date('2024-03-25')
-    }
-];
+const prisma_1 = require("../db/prisma");
 /**
  * Listar todas as transações de inventário
  * @route GET /api/inventory-transactions
  */
 const getAllInventoryTransactions = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        return res.json(inventoryTransactions);
+        // Parâmetros de paginação
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+        // Filtros
+        const type = req.query.type;
+        const itemId = req.query.itemId;
+        const startDate = req.query.startDate;
+        const endDate = req.query.endDate;
+        // Construir o objeto where com base nos filtros
+        const where = {};
+        if (type)
+            where.type = type;
+        if (itemId)
+            where.itemId = itemId;
+        if (startDate || endDate) {
+            where.date = {};
+            if (startDate)
+                where.date.gte = new Date(startDate);
+            if (endDate)
+                where.date.lte = new Date(endDate);
+        }
+        // Buscar transações com paginação
+        const [transactions, total] = yield Promise.all([
+            prisma_1.prisma.inventoryTransaction.findMany({
+                where,
+                include: {
+                    item: true
+                },
+                orderBy: [
+                    { date: 'desc' }
+                ],
+                skip,
+                take: limit
+            }),
+            prisma_1.prisma.inventoryTransaction.count({ where })
+        ]);
+        return res.json({
+            transactions,
+            pagination: {
+                total,
+                page,
+                limit,
+                pages: Math.ceil(total / limit)
+            }
+        });
     }
     catch (error) {
         console.error('Erro ao buscar transações de inventário:', error);
@@ -74,13 +71,18 @@ const getAllInventoryTransactions = (req, res) => __awaiter(void 0, void 0, void
 });
 exports.getAllInventoryTransactions = getAllInventoryTransactions;
 /**
- * Obter uma transação de inventário pelo ID
+ * Obter uma transação de inventário por ID
  * @route GET /api/inventory-transactions/:id
  */
 const getInventoryTransactionById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
-        const transaction = inventoryTransactions.find(t => t.id === id);
+        const transaction = yield prisma_1.prisma.inventoryTransaction.findUnique({
+            where: { id },
+            include: {
+                item: true
+            }
+        });
         if (!transaction) {
             return res.status(404).json({ error: 'Transação de inventário não encontrada' });
         }
@@ -98,29 +100,52 @@ exports.getInventoryTransactionById = getInventoryTransactionById;
  */
 const createInventoryTransaction = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { type, item_id, quantity, unit_price, date, description, reference_number, user_id, supplier, customer_id } = req.body;
-        if (!type || !item_id || !quantity) {
-            return res.status(400).json({ error: 'Tipo, ID do item e quantidade são obrigatórios' });
+        const { itemId, type, quantity, date, notes } = req.body;
+        // Validação básica
+        if (!itemId || !type || !quantity) {
+            return res.status(400).json({
+                error: 'ID do item, tipo e quantidade são obrigatórios'
+            });
         }
-        const total_price = (quantity * (unit_price || 0));
-        const newTransaction = {
-            id: (0, uuid_1.v4)(),
-            type,
-            item_id,
-            quantity,
-            unit_price: unit_price || 0,
-            total_price,
-            date: date ? new Date(date) : new Date(),
-            description,
-            reference_number,
-            user_id,
-            supplier,
-            customer_id,
-            createdAt: new Date(),
-            updatedAt: new Date()
-        };
-        inventoryTransactions.push(newTransaction);
-        return res.status(201).json(newTransaction);
+        // Verificar se o item existe
+        const item = yield prisma_1.prisma.inventoryItem.findUnique({
+            where: { id: itemId }
+        });
+        if (!item) {
+            return res.status(404).json({ error: 'Item de inventário não encontrado' });
+        }
+        // Verificar se há quantidade suficiente para saída
+        if (type === 'out' && item.quantity < quantity) {
+            return res.status(400).json({
+                error: 'Quantidade insuficiente em estoque'
+            });
+        }
+        // Iniciar transação do banco de dados
+        const result = yield prisma_1.prisma.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
+            // Criar transação
+            const transaction = yield tx.inventoryTransaction.create({
+                data: {
+                    itemId,
+                    type,
+                    quantity,
+                    date: date ? new Date(date) : new Date(),
+                    notes
+                }
+            });
+            // Atualizar quantidade do item
+            const newQuantity = type === 'in'
+                ? item.quantity + quantity
+                : item.quantity - quantity;
+            yield tx.inventoryItem.update({
+                where: { id: itemId },
+                data: { quantity: newQuantity }
+            });
+            return transaction;
+        }));
+        return res.status(201).json({
+            message: 'Transação de inventário criada com sucesso',
+            transaction: result
+        });
     }
     catch (error) {
         console.error('Erro ao criar transação de inventário:', error);
@@ -135,21 +160,64 @@ exports.createInventoryTransaction = createInventoryTransaction;
 const updateInventoryTransaction = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
-        const { type, item_id, quantity, unit_price, date, description, reference_number, user_id, supplier, customer_id } = req.body;
+        const { itemId, type, quantity, date, notes } = req.body;
         // Verificar se a transação existe
-        const transactionIndex = inventoryTransactions.findIndex(t => t.id === id);
-        if (transactionIndex === -1) {
+        const transaction = yield prisma_1.prisma.inventoryTransaction.findUnique({
+            where: { id },
+            include: {
+                item: true
+            }
+        });
+        if (!transaction) {
             return res.status(404).json({ error: 'Transação de inventário não encontrada' });
         }
-        const existingTransaction = inventoryTransactions[transactionIndex];
-        // Calcular novo preço total se quantidade ou preço unitário forem atualizados
-        const newUnitPrice = unit_price !== undefined ? unit_price : existingTransaction.unit_price;
-        const newQuantity = quantity !== undefined ? quantity : existingTransaction.quantity;
-        const total_price = newQuantity * newUnitPrice;
-        // Atualizar a transação
-        const updatedTransaction = Object.assign(Object.assign({}, existingTransaction), { type: type || existingTransaction.type, item_id: item_id || existingTransaction.item_id, quantity: newQuantity, unit_price: newUnitPrice, total_price, date: date ? new Date(date) : existingTransaction.date, description: description !== undefined ? description : existingTransaction.description, reference_number: reference_number !== undefined ? reference_number : existingTransaction.reference_number, user_id: user_id || existingTransaction.user_id, supplier: supplier !== undefined ? supplier : existingTransaction.supplier, customer_id: customer_id !== undefined ? customer_id : existingTransaction.customer_id, updatedAt: new Date() });
-        inventoryTransactions[transactionIndex] = updatedTransaction;
-        return res.json(updatedTransaction);
+        // Verificar se o item existe (se foi alterado)
+        if (itemId && itemId !== transaction.itemId) {
+            const item = yield prisma_1.prisma.inventoryItem.findUnique({
+                where: { id: itemId }
+            });
+            if (!item) {
+                return res.status(404).json({ error: 'Item de inventário não encontrado' });
+            }
+        }
+        // Iniciar transação do banco de dados
+        const result = yield prisma_1.prisma.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
+            // Reverter quantidade anterior
+            const oldQuantity = transaction.type === 'in'
+                ? transaction.item.quantity - transaction.quantity
+                : transaction.item.quantity + transaction.quantity;
+            yield tx.inventoryItem.update({
+                where: { id: transaction.itemId },
+                data: { quantity: oldQuantity }
+            });
+            // Atualizar transação
+            const updatedTransaction = yield tx.inventoryTransaction.update({
+                where: { id },
+                data: {
+                    itemId: itemId || undefined,
+                    type: type || undefined,
+                    quantity: quantity || undefined,
+                    date: date ? new Date(date) : undefined,
+                    notes: notes !== undefined ? notes : undefined
+                },
+                include: {
+                    item: true
+                }
+            });
+            // Aplicar nova quantidade
+            const newQuantity = updatedTransaction.type === 'in'
+                ? updatedTransaction.item.quantity + updatedTransaction.quantity
+                : updatedTransaction.item.quantity - updatedTransaction.quantity;
+            yield tx.inventoryItem.update({
+                where: { id: updatedTransaction.itemId },
+                data: { quantity: newQuantity }
+            });
+            return updatedTransaction;
+        }));
+        return res.json({
+            message: 'Transação de inventário atualizada com sucesso',
+            transaction: result
+        });
     }
     catch (error) {
         console.error('Erro ao atualizar transação de inventário:', error);
@@ -165,12 +233,30 @@ const deleteInventoryTransaction = (req, res) => __awaiter(void 0, void 0, void 
     try {
         const { id } = req.params;
         // Verificar se a transação existe
-        const transactionIndex = inventoryTransactions.findIndex(t => t.id === id);
-        if (transactionIndex === -1) {
+        const transaction = yield prisma_1.prisma.inventoryTransaction.findUnique({
+            where: { id },
+            include: {
+                item: true
+            }
+        });
+        if (!transaction) {
             return res.status(404).json({ error: 'Transação de inventário não encontrada' });
         }
-        // Excluir a transação
-        inventoryTransactions.splice(transactionIndex, 1);
+        // Iniciar transação do banco de dados
+        yield prisma_1.prisma.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
+            // Reverter quantidade
+            const newQuantity = transaction.type === 'in'
+                ? transaction.item.quantity - transaction.quantity
+                : transaction.item.quantity + transaction.quantity;
+            yield tx.inventoryItem.update({
+                where: { id: transaction.itemId },
+                data: { quantity: newQuantity }
+            });
+            // Excluir transação
+            yield tx.inventoryTransaction.delete({
+                where: { id }
+            });
+        }));
         return res.json({ message: 'Transação de inventário excluída com sucesso' });
     }
     catch (error) {

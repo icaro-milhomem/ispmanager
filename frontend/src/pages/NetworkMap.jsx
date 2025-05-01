@@ -192,7 +192,7 @@ export default function NetworkMapPage() {
                     )}
                   </svg>
                   
-                  {/* Layer 1: Core (Roteadores, OLTs) */}
+                  {/* Layer 1: Core (Roteadores) */}
                   <div className="absolute top-16 left-0 right-0 flex justify-center gap-10">
                     {categories.core.map(item => (
                       <NetworkNode 
@@ -276,7 +276,7 @@ export default function NetworkMapPage() {
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
                     <Router className="w-4 h-4 text-blue-600" />
-                    <span>Roteadores/OLTs</span>
+                    <span>Roteadores</span>
                   </div>
                   <Badge>{categories.core.length}</Badge>
                 </div>

@@ -1,157 +1,103 @@
-import React, { useState } from 'react';
-import { Card, CardContent } from "@/components/ui/card";
+import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Pencil, Plus, Wifi, WifiOff, AlertTriangle } from "lucide-react";
+import { 
+  MapPin, 
+  Edit, 
+  ChevronRight,
+  Plus,
+  AlertTriangle
+} from "lucide-react";
 
 export default function CTOViewer({ 
-  ctos = [], 
-  selectedCTO,
-  onCTOSelect, 
-  onCTOEdit,
-  onAddClient
+  selectedCTO, 
+  onCTOEdit, 
+  onAddClient,
+  onCTOSelect,
+  ctos 
 }) {
-  // Buscar a CTO mais próxima da localização atual
-  const findNearestCTO = () => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(function(position) {
-        const userLat = position.coords.latitude;
-        const userLng = position.coords.longitude;
-        
-        // Calcular distância para cada CTO
-        const ctosWithDistance = ctos.map(cto => {
-          const distance = calculateDistance(
-            { lat: userLat, lng: userLng },
-            cto.position
-          );
-          return { ...cto, distance };
-        });
-        
-        // Ordenar por distância e selecionar a primeira
-        const nearest = [...ctosWithDistance].sort((a, b) => a.distance - b.distance)[0];
-        
-        if (nearest) {
-          onCTOSelect(nearest);
-        } else {
-          alert("Nenhuma CTO encontrada.");
-        }
-      }, function(error) {
-        alert("Erro ao obter localização: " + error.message);
-      });
-    } else {
-      alert("Geolocalização não disponível neste navegador.");
-    }
-  };
-  
-  // Calcular distância entre dois pontos
-  const calculateDistance = (point1, point2) => {
-    const R = 6371e3; // raio da Terra em metros
-    const φ1 = point1.lat * Math.PI/180;
-    const φ2 = point2.lat * Math.PI/180;
-    const Δφ = (point2.lat-point1.lat) * Math.PI/180;
-    const Δλ = (point2.lng-point1.lng) * Math.PI/180;
+  const nextCTO = ctos.find(cto => cto.id > selectedCTO.id);
+  const capacity = parseInt(selectedCTO.capacity) || 16;
+  const portsInUse = selectedCTO.ports?.length || 0;
+  const availablePorts = capacity - portsInUse;
 
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ/2) * Math.sin(Δλ/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-    return R * c; // em metros
-  };
-  
-  if (!selectedCTO) return null;
-  
-  // Informações da CTO selecionada
-  const ports = selectedCTO.ports || [];
-  const totalPorts = selectedCTO.properties?.capacity || 0;
-  const usedPorts = ports.length;
-  const availablePorts = totalPorts - usedPorts;
-  
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-start">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold">{selectedCTO.name}</h2>
-            <Badge>{totalPorts} portas</Badge>
-          </div>
-          <p className="text-gray-500 flex items-center gap-1 mt-1">
+          <h3 className="text-lg font-medium">{selectedCTO.name}</h3>
+          <p className="text-sm text-gray-500 flex items-center gap-1">
             <MapPin className="w-4 h-4" />
-            {selectedCTO.properties?.address || "Sem endereço"}
+            {selectedCTO.address || "Sem endereço"}
           </p>
         </div>
-        
+
         <div className="flex gap-2">
-          <Button variant="outline" onClick={findNearestCTO}>
-            <MapPin className="w-4 h-4 mr-2" />
-            Buscar Próxima
-          </Button>
-          <Button variant="outline" onClick={() => onCTOEdit(selectedCTO)}>
-            <Pencil className="w-4 h-4 mr-2" />
+          <Badge variant="outline">
+            {portsInUse} portas em uso
+          </Badge>
+          <Badge variant="outline" className={availablePorts === 0 ? "bg-red-50" : ""}>
+            {availablePorts} portas disponíveis
+          </Badge>
+          <Badge variant="outline">
+            Capacidade: {capacity}
+          </Badge>
+        </div>
+
+        <div className="flex gap-2">
+          {nextCTO && (
+            <Button 
+              variant="outline" 
+              onClick={() => onCTOSelect(nextCTO)}
+              className="flex items-center gap-2"
+            >
+              Buscar Próxima
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          )}
+          <Button 
+            variant="outline"
+            onClick={onCTOEdit}
+            className="flex items-center gap-2"
+          >
+            <Edit className="w-4 h-4" />
             Editar
           </Button>
         </div>
       </div>
-      
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h3 className="font-medium">Portas disponíveis</h3>
-              <p className="text-sm text-gray-500">
-                {usedPorts} de {totalPorts} portas em uso ({availablePorts} disponíveis)
-              </p>
-            </div>
-            <Button 
-              size="sm" 
-              disabled={usedPorts >= totalPorts}
-              onClick={() => onAddClient(selectedCTO)}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Adicionar Cliente
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
-            {Array.from({ length: totalPorts }, (_, i) => {
-              const portNumber = i + 1;
-              const port = ports.find(p => p.number === portNumber);
-              const status = port?.status || 'empty';
-              
+
+      <div>
+        <h4 className="font-medium mb-2">Portas disponíveis</h4>
+        <p className="text-sm text-gray-600">
+          {portsInUse} de {capacity} portas em uso ({availablePorts} disponíveis)
+        </p>
+        
+        {availablePorts > 0 ? (
+          <div className="mt-4 grid grid-cols-8 gap-2">
+            {Array.from({ length: capacity }, (_, i) => {
+              const port = selectedCTO.ports?.find(p => p.number === i + 1);
               return (
-                <div 
-                  key={portNumber}
-                  className={`p-2 border rounded-md flex flex-col items-center ${
-                    status === 'active' ? 'border-green-500 bg-green-50' : 
-                    status === 'blocked' ? 'border-red-500 bg-red-50' : 
-                    'border-gray-200 bg-gray-50'
-                  }`}
+                <div
+                  key={i}
+                  className={`
+                    w-8 h-8 rounded-full flex items-center justify-center text-xs
+                    ${port ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200'}
+                  `}
+                  onClick={() => !port && onAddClient && onAddClient(selectedCTO)}
+                  title={port ? `${port.client_name || 'Cliente'} - Porta ${i + 1}` : `Porta ${i + 1} - Disponível`}
                 >
-                  <span className="text-sm font-medium">P{portNumber}</span>
-                  {status === 'active' && <Wifi className="w-4 h-4 text-green-500 mt-1" />}
-                  {status === 'blocked' && <AlertTriangle className="w-4 h-4 text-red-500 mt-1" />}
-                  {status === 'empty' && <WifiOff className="w-4 h-4 text-gray-300 mt-1" />}
-                  
-                  {port?.client_name && (
-                    <span className="text-xs mt-1 text-center truncate w-full" title={port.client_name}>
-                      {port.client_name}
-                    </span>
-                  )}
+                  {i + 1}
                 </div>
               );
             })}
           </div>
-        </CardContent>
-      </Card>
-      
-      {selectedCTO.properties?.notes && (
-        <Card>
-          <CardContent className="p-4">
-            <h3 className="font-medium mb-2">Observações</h3>
-            <p className="text-sm text-gray-600">{selectedCTO.properties.notes}</p>
-          </CardContent>
-        </Card>
-      )}
+        ) : (
+          <div className="mt-4 flex items-center gap-2 text-yellow-600">
+            <AlertTriangle className="w-4 h-4" />
+            <span className="text-sm">Não há portas disponíveis nesta CTO</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

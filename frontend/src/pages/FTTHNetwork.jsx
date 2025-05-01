@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Network,
@@ -28,7 +27,10 @@ import CTOViewer from "../components/ftth/CTOViewer";
 import CTOForm from "../components/ftth/CTOForm";
 import NetworkTopology from "../components/ftth/NetworkTopology";
 import FTTHMap from "../components/ftth/FTTHMap";
-import MapDocumentation from "../components/ftth/MapDocumentation"; // Importando o componente de documentação do mapa
+import MapDocumentation from "../components/ftth/MapDocumentation";
+import { createEntityClient } from '@/api/apiClient';
+import { ftthConnectionsClient } from '@/lib/ftth-clients';
+import { toast } from "react-hot-toast";
 
 export default function FTTHNetworkPage() {
   const [ctos, setCTOs] = useState([]);
@@ -40,293 +42,421 @@ export default function FTTHNetworkPage() {
   const [networkElements, setNetworkElements] = useState([]);
   const [fiberPaths, setFiberPaths] = useState([]);
   
-  const generateNetworkData = () => {
-    const oltCount = ctos.length > 10 ? 2 : 1;
-    const olts = Array.from({ length: oltCount }, (_, i) => ({
-      id: `olt-${i+1}`,
-      name: `OLT-${i+1}`,
-      type: "OLT",
-      status: "online",
-      capacity: 128,
-      utilization: Math.floor(Math.random() * 80) + 10
-    }));
-    
-    const ctoNodes = ctos.map(cto => ({
-      id: cto.id,
-      name: cto.name,
-      type: "CTO",
-      status: "online",
-      capacity: cto.properties?.capacity || 16,
-      utilization: cto.ports ? (cto.ports.length / cto.properties?.capacity) * 100 : 0,
-      address: cto.properties?.address || ""
-    }));
-    
-    const splitterCount = Math.max(1, Math.floor(ctos.length / 3));
-    const splitters = Array.from({ length: splitterCount }, (_, i) => ({
-      id: `splitter-${i+1}`,
-      name: `Splitter-${i+1}`,
-      type: "SPLITTER",
-      status: "online",
-      capacity: 8,
-      utilization: Math.floor(Math.random() * 90) + 10
-    }));
-    
-    const clientNodes = [];
-    ctos.forEach((cto, ctoIndex) => {
-      if (cto.ports && cto.ports.length > 0) {
-        cto.ports.forEach((port, portIndex) => {
-          if (port.client_name) {
-            clientNodes.push({
-              id: `client-${ctoIndex}-${portIndex}`,
-              name: port.client_name,
-              type: "CLIENT",
-              status: port.status === "active" ? "online" : "offline",
-              port: port.number
-            });
-          }
-        });
-      }
-    });
-    
-    const links = [];
-    
-    ctoNodes.forEach((cto, index) => {
-      const oltIndex = oltCount > 1 ? index % oltCount : 0;
-      links.push({
-        id: `link-olt-${oltIndex+1}-${cto.id}`,
-        source: olts[oltIndex].id,
-        target: cto.id,
-        type: "backbone",
-        capacity: 144
-      });
-    });
-    
-    if (splitters.length > 0 && ctoNodes.length > 3) {
-      for (let i = 0; i < Math.min(ctoNodes.length, splitters.length * 4); i++) {
-        const splitterIndex = i % splitters.length;
-        links.push({
-          id: `link-splitter-${splitters[splitterIndex].id}-${ctoNodes[i].id}`,
-          source: splitters[splitterIndex].id,
-          target: ctoNodes[i].id,
-          type: "distribution",
-          capacity: 36
-        });
-      }
-      
-      splitters.forEach((splitter, index) => {
-        const oltIndex = oltCount > 1 ? index % oltCount : 0;
-        links.push({
-          id: `link-olt-${oltIndex+1}-${splitter.id}`,
-          source: olts[oltIndex].id,
-          target: splitter.id,
-          type: "backbone",
-          capacity: 144
-        });
-      });
-    }
-    
-    clientNodes.forEach(client => {
-      const ctoIndex = parseInt(client.id.split('-')[1]);
-      if (ctoNodes[ctoIndex]) {
-        links.push({
-          id: `link-${ctoNodes[ctoIndex].id}-${client.id}`,
-          source: ctoNodes[ctoIndex].id,
-          target: client.id,
-          type: "drop",
-          capacity: 1
-        });
-      }
-    });
-    
-    const allNodes = [...olts, ...splitters, ...ctoNodes, ...clientNodes];
-    
-    return {
-      nodes: allNodes,
-      links: links
-    };
-  };
+  const ctoClient = createEntityClient('ctos');
+  const fiberClient = createEntityClient('ftth/connections');
 
-  const [networkData, setNetworkData] = useState({ nodes: [], links: [] });
+  console.log('Clientes de API inicializados:', { ctoClient, fiberClient });
 
   useEffect(() => {
     loadCTOs();
+    loadConnections();
   }, []);
 
   useEffect(() => {
+    const allElements = [];
+    
+    // Processar CTOs
     if (ctos.length > 0) {
-      const generatedData = generateNetworkData();
-      setNetworkData(generatedData);
-      
-      const mapElements = [];
-      const mapFiberPaths = [];
-      
-      generatedData.nodes.filter(node => node.type === "OLT").forEach(olt => {
-        mapElements.push({
-          id: olt.id,
-          name: olt.name,
-          type: "OLT",
-          position: {
-            lat: -23.550520 - (Math.random() * 0.01),
-            lng: -46.633308 - (Math.random() * 0.01)
-          },
+      console.log("CTOs brutas:", ctos);
+      const ctoElements = ctos.map(cto => {
+        // Validar e converter coordenadas
+        const lat = typeof cto.latitude === 'number' ? cto.latitude : 
+                   typeof cto.position?.lat === 'number' ? cto.position.lat :
+                   parseFloat(cto.latitude || cto.position?.lat);
+                   
+        const lng = typeof cto.longitude === 'number' ? cto.longitude :
+                   typeof cto.position?.lng === 'number' ? cto.position.lng :
+                   parseFloat(cto.longitude || cto.position?.lng);
+
+        // Verificar se as coordenadas são válidas
+        if (isNaN(lat) || isNaN(lng)) {
+          console.error('Coordenadas inválidas para CTO:', cto);
+          return null;
+        }
+
+        return {
+          id: cto.id,
+          name: cto.name,
+          type: "CTO",
+          position: { lat, lng },
           properties: {
-            capacity: olt.capacity,
-            utilization: olt.utilization,
-            status: olt.status
+            capacity: parseInt(cto.capacity) || 16,
+            address: cto.address || 'Sem endereço',
+            portCount: cto.ports?.length || 0,
+            status: cto.status || 'active'
           }
-        });
-      });
+        };
+      }).filter(Boolean);
       
-      ctos.forEach(cto => {
-        if (cto.position && cto.position.lat && cto.position.lng) {
-          mapElements.push({
-            id: cto.id,
-            name: cto.name,
-            type: "CTO",
-            position: cto.position,
-            properties: {
-              ...cto.properties,
-              portCount: cto.ports ? cto.ports.length : 0
-            }
-          });
-        }
-      });
-      
-      generatedData.nodes.filter(node => node.type === "SPLITTER").forEach(splitter => {
-        mapElements.push({
-          id: splitter.id,
-          name: splitter.name,
-          type: "SPLITTER",
-          position: {
-            lat: -23.550520 + (Math.random() * 0.01),
-            lng: -46.633308 + (Math.random() * 0.01)
-          },
-          properties: {
-            capacity: splitter.capacity,
-            utilization: splitter.utilization,
-            status: splitter.status
-          }
-        });
-      });
-      
-      ctos.forEach(cto => {
-        if (cto.position && cto.ports && cto.ports.length > 0) {
-          cto.ports.forEach((port, index) => {
-            if (port.client_name) {
-              mapElements.push({
-                id: `client-${cto.id}-${port.number}`,
-                name: port.client_name,
-                type: "BUILDING",
-                position: {
-                  lat: cto.position.lat + (Math.random() * 0.002 - 0.001),
-                  lng: cto.position.lng + (Math.random() * 0.002 - 0.001)
-                },
-                properties: {
-                  ctoId: cto.id,
-                  portNumber: port.number,
-                  status: port.status
-                }
-              });
-            }
-          });
-        }
-      });
-      
-      generatedData.links.forEach(link => {
-        const source = generatedData.nodes.find(n => n.id === link.source);
-        const target = generatedData.nodes.find(n => n.id === link.target);
-        
-        if (source && target) {
-          const sourceElement = mapElements.find(e => e.id === source.id);
-          const targetElement = mapElements.find(e => e.id === target.id);
-          
-          if (sourceElement && targetElement && sourceElement.position && targetElement.position) {
-            const midPoints = [];
-            const pointCount = Math.floor(Math.random() * 3) + 1;
-            
-            for (let i = 0; i < pointCount; i++) {
-              const ratio = (i + 1) / (pointCount + 1);
-              
-              const jitterLat = Math.random() * 0.001 - 0.0005;
-              const jitterLng = Math.random() * 0.001 - 0.0005;
-              
-              midPoints.push({
-                lat: sourceElement.position.lat + (targetElement.position.lat - sourceElement.position.lat) * ratio + jitterLat,
-                lng: sourceElement.position.lng + (targetElement.position.lng - sourceElement.position.lng) * ratio + jitterLng
-              });
-            }
-            
-            const coordinates = [
-              sourceElement.position,
-              ...midPoints,
-              targetElement.position
-            ];
-            
-            mapFiberPaths.push({
-              id: link.id,
-              source: sourceElement.id,
-              target: targetElement.id,
-              type: link.type,
-              coordinates: coordinates,
-              properties: {
-                capacity: link.capacity,
-                length: Math.random() * 500 + 100
-              }
-            });
-          }
-        }
-      });
-      
-      setNetworkElements(mapElements);
-      setFiberPaths(mapFiberPaths);
+      allElements.push(...ctoElements);
     }
+
+    console.log("Elementos do mapa processados:", allElements);
+    setNetworkElements(allElements);
   }, [ctos]);
 
-  const loadCTOs = () => {
-    const savedCTOs = localStorage.getItem('ctos');
-    if (savedCTOs) {
-      try {
-        const data = JSON.parse(savedCTOs);
-        setCTOs(data);
-      } catch (e) {
-        console.error("Erro ao carregar CTOs:", e);
+  const loadCTOs = async (retryCount = 0) => {
+    try {
+      console.log('Tentando carregar CTOs...');
+      const data = await ctoClient.list();
+      console.log('CTOs carregadas com sucesso:', data);
+      
+      if (Array.isArray(data)) {
+      setCTOs(data);
+        localStorage.setItem('ctos', JSON.stringify(data));
+      } else {
+        console.error('Resposta inválida ao carregar CTOs:', data);
+        throw new Error('Formato de resposta inválido');
+      }
+    } catch (error) {
+      console.error('Erro ao carregar CTOs:', error);
+      
+      if (retryCount < 3) {
+        console.log(`Tentando novamente (${retryCount + 1}/3)...`);
+        setTimeout(() => loadCTOs(retryCount + 1), 1000);
+      } else {
+      const storedCTOs = JSON.parse(localStorage.getItem('ctos') || '[]');
+        console.log('Usando CTOs do localStorage:', storedCTOs);
+      setCTOs(storedCTOs);
       }
     }
   };
 
-  const saveCTOs = (newCTOs) => {
-    localStorage.setItem('ctos', JSON.stringify(newCTOs));
-    setCTOs(newCTOs);
+  const loadConnections = async () => {
+    try {
+      console.log('Carregando conexões...');
+      const connections = await fiberClient.list();
+      
+      if (!Array.isArray(connections)) {
+        console.error('Resposta inválida do servidor:', connections);
+        throw new Error('Resposta inválida do servidor');
+      }
+
+      console.log('Conexões brutas:', connections);
+      
+      // Processar conexões
+      const processedConnections = connections.map(conn => {
+        // Validar e processar coordenadas
+        if (!conn.coordinates || !Array.isArray(conn.coordinates)) {
+          console.error('Coordenadas inválidas para conexão:', conn);
+          return null;
+        }
+
+        // Converter coordenadas para o formato esperado
+        const validCoordinates = conn.coordinates.map(coord => {
+          if (Array.isArray(coord) && coord.length === 2) {
+            return coord;
+          }
+          if (typeof coord === 'object' && coord.lat !== undefined && coord.lng !== undefined) {
+            return [coord.lat, coord.lng];
+          }
+          return null;
+        }).filter(Boolean);
+
+        if (validCoordinates.length < 2) {
+          console.error('Número insuficiente de coordenadas válidas:', conn);
+          return null;
+        }
+
+        return {
+          ...conn,
+          coordinates: validCoordinates
+        };
+      }).filter(Boolean);
+
+      console.log('Conexões processadas:', processedConnections);
+      setFiberPaths(processedConnections);
+      
+    } catch (error) {
+      console.error('Erro ao carregar conexões:', error);
+      toast.error('Erro ao carregar conexões');
+    }
   };
 
-  const handleAddCTO = (ctoData) => {
-    const newCTO = {
-      ...ctoData,
-      id: `cto-${Date.now()}`,
-      ports: [],
-      created: new Date().toISOString()
-    };
-    
-    const updatedCTOs = [...ctos, newCTO];
-    saveCTOs(updatedCTOs);
-    setShowCTOForm(false);
+  const saveCTOs = async (newCTOs) => {
+    try {
+      console.log('Iniciando salvamento de CTOs:', newCTOs);
+      
+      // Garantir que as coordenadas estejam no formato correto
+      const formattedCTOs = newCTOs.map(cto => ({
+        ...cto,
+        latitude: typeof cto.latitude === 'number' ? cto.latitude : 
+                 typeof cto.position?.lat === 'number' ? cto.position.lat :
+                 parseFloat(cto.latitude || cto.position?.lat),
+        longitude: typeof cto.longitude === 'number' ? cto.longitude :
+                  typeof cto.position?.lng === 'number' ? cto.position.lng :
+                  parseFloat(cto.longitude || cto.position?.lng)
+      }));
+
+      localStorage.setItem('ctos', JSON.stringify(formattedCTOs));
+      
+      setCTOs(formattedCTOs);
+      
+      const mapElements = formattedCTOs.map(cto => ({
+        id: cto.id,
+        name: cto.name,
+        type: "CTO",
+        position: {
+          lat: cto.latitude,
+          lng: cto.longitude
+        },
+        properties: {
+          capacity: parseInt(cto.capacity) || 16,
+          address: cto.address || 'Sem endereço',
+          portCount: cto.ports?.length || 0,
+          status: cto.status || 'active'
+        }
+      }));
+      
+      setNetworkElements(mapElements);
+      
+      console.log('CTOs salvas com sucesso. Estado atualizado:', {
+        ctos: formattedCTOs,
+        mapElements: mapElements
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Erro ao salvar CTOs:', error);
+      toast.error('Erro ao salvar CTOs. Os dados foram salvos localmente como backup.');
+      return false;
+    }
   };
 
-  const handleUpdateCTO = (ctoData) => {
-    const updatedCTOs = ctos.map(cto => 
-      cto.id === ctoData.id ? { ...cto, ...ctoData } : cto
-    );
-    
-    saveCTOs(updatedCTOs);
-    setSelectedCTO(null);
-    setShowCTOForm(false);
-  };
-
-  const handleDeleteCTO = (ctoId) => {
-    if (window.confirm("Tem certeza que deseja excluir esta CTO?")) {
-      const updatedCTOs = ctos.filter(cto => cto.id !== ctoId);
+  const handleAddCTO = async (ctoData) => {
+    try {
+      console.log("Dados para criar CTO:", ctoData);
+      const newCTO = await ctoClient.create({
+        name: ctoData.name,
+        latitude: ctoData.position.lat,
+        longitude: ctoData.position.lng,
+        capacity: parseInt(ctoData.properties.capacity) || 16,
+        address: ctoData.properties.address || 'Sem endereço',
+        notes: ctoData.properties.notes || '',
+        ports: [],
+        status: 'active'
+      });
+      
+      console.log("Nova CTO criada:", newCTO);
+      const updatedCTOs = [...ctos, {
+        ...newCTO,
+        properties: {
+          capacity: parseInt(newCTO.capacity) || 16,
+          address: newCTO.address || 'Sem endereço',
+          portCount: 0
+        }
+      }];
       saveCTOs(updatedCTOs);
+      setShowCTOForm(false);
+    } catch (error) {
+      console.error('Erro ao criar CTO:', error);
+      alert('Erro ao criar CTO. Por favor, tente novamente.');
+    }
+  };
+
+  const handleUpdateCTO = async (ctoData) => {
+    try {
+      console.log("Dados para atualizar CTO:", ctoData);
+      if (!ctoData.id) {
+        throw new Error('ID da CTO não fornecido');
+      }
+
+      // Validação das coordenadas
+      let lat, lng;
+      
+      // Função auxiliar para extrair coordenadas de um objeto
+      const extractCoords = (obj) => {
+        if (obj.position) {
+          if (typeof obj.position.lat === 'number' && typeof obj.position.lng === 'number') {
+            return { lat: obj.position.lat, lng: obj.position.lng };
+          }
+          return extractCoords(obj.position);
+        }
+        return null;
+      };
+
+      // Tentar obter as coordenadas de diferentes formatos possíveis
+      const coords = extractCoords(ctoData);
+      if (coords) {
+        lat = coords.lat;
+        lng = coords.lng;
+      } else if (ctoData.latitude && ctoData.longitude) {
+        lat = parseFloat(ctoData.latitude);
+        lng = parseFloat(ctoData.longitude);
+      } else {
+        throw new Error('Coordenadas não fornecidas');
+      }
+      
+      // Validação adicional das coordenadas
+      if (isNaN(lat) || isNaN(lng)) {
+        console.error('Coordenadas inválidas:', { lat, lng, ctoData });
+        throw new Error('Coordenadas inválidas');
+      }
+      
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        console.error('Coordenadas fora do intervalo:', { lat, lng });
+        throw new Error('Coordenadas fora do intervalo válido');
+      }
+
+      const updateData = {
+        name: ctoData.name || undefined,
+        latitude: lat,
+        longitude: lng,
+        capacity: parseInt(ctoData.properties?.capacity || ctoData.capacity) || 16,
+        address: ctoData.properties?.address || ctoData.address || 'Sem endereço',
+        notes: ctoData.properties?.notes || ctoData.notes || '',
+        ports: ctoData.ports || [],
+        status: ctoData.status || 'active'
+      };
+
+      // Remover campos undefined
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] === undefined) {
+          delete updateData[key];
+        }
+      });
+
+      console.log("Enviando dados de atualização:", updateData);
+      
+      try {
+        // Primeiro tenta atualizar
+        const updatedCTO = await ctoClient.update(ctoData.id, updateData);
+        console.log("CTO atualizada:", updatedCTO);
+        
+        // Atualizar o estado local imediatamente
+        const updatedCTOs = ctos.map(cto => 
+          cto.id === ctoData.id ? {
+            ...updatedCTO,
+            latitude: lat,
+            longitude: lng,
+            position: { lat, lng },
+            properties: {
+              capacity: parseInt(updatedCTO.capacity) || 16,
+              address: updatedCTO.address || 'Sem endereço',
+              portCount: updatedCTO.ports?.length || 0
+            }
+          } : cto
+        );
+
+        // Atualizar o estado local antes de salvar
+        setCTOs(updatedCTOs);
+        
+        // Atualizar os elementos do mapa
+        const mapElements = updatedCTOs.map(cto => ({
+          id: cto.id,
+          name: cto.name,
+          type: "CTO",
+          position: {
+            lat: cto.latitude,
+            lng: cto.longitude
+          },
+          properties: {
+            capacity: parseInt(cto.capacity) || 16,
+            address: cto.address || 'Sem endereço',
+            portCount: cto.ports?.length || 0
+          }
+        }));
+        
+        setNetworkElements(mapElements);
+        
+        // Salvar no localStorage
+        localStorage.setItem('ctos', JSON.stringify(updatedCTOs));
+        
+        toast.success('CTO atualizada com sucesso!');
+      } catch (error) {
+        // Se o erro for 404 (CTO não encontrada), tenta criar uma nova
+        if (error.response?.status === 404) {
+          console.log("CTO não encontrada, tentando criar uma nova...");
+          
+          // Validação adicional para criação
+          if (!updateData.name) {
+            updateData.name = `CTO ${ctoData.id.slice(0, 8)}`;
+          }
+          
+          if (!updateData.ports) {
+            updateData.ports = [];
+          }
+          
+          if (!updateData.status) {
+            updateData.status = 'active';
+          }
+
+          try {
+            const newCTO = await ctoClient.create(updateData);
+            console.log("Nova CTO criada:", newCTO);
+            
+            const updatedCTOs = [...ctos, {
+              ...newCTO,
+              latitude: lat,
+              longitude: lng,
+              position: { lat, lng },
+              properties: {
+                capacity: parseInt(newCTO.capacity) || 16,
+                address: newCTO.address || 'Sem endereço',
+                portCount: newCTO.ports?.length || 0
+              }
+            }];
+            
+            // Atualizar o estado local
+            setCTOs(updatedCTOs);
+            
+            // Atualizar os elementos do mapa
+            const mapElements = updatedCTOs.map(cto => ({
+              id: cto.id,
+              name: cto.name,
+              type: "CTO",
+              position: {
+                lat: cto.latitude,
+                lng: cto.longitude
+              },
+              properties: {
+                capacity: parseInt(cto.capacity) || 16,
+                address: cto.address || 'Sem endereço',
+                portCount: cto.ports?.length || 0
+              }
+            }));
+            
+            setNetworkElements(mapElements);
+            
+            // Salvar no localStorage
+            localStorage.setItem('ctos', JSON.stringify(updatedCTOs));
+            
+            toast.success('Nova CTO criada com sucesso!');
+          } catch (createError) {
+            console.error('Erro ao criar nova CTO:', createError);
+            if (createError.response?.status === 500) {
+              throw new Error('Erro interno do servidor ao criar CTO. Por favor, tente novamente mais tarde.');
+            } else {
+              throw new Error('Falha ao criar nova CTO: ' + (createError.message || 'Erro desconhecido'));
+            }
+          }
+        } else {
+          // Se for outro erro, propaga
+          throw error;
+        }
+      }
+      
       setSelectedCTO(null);
+      setShowCTOForm(false);
+    } catch (error) {
+      console.error('Erro ao atualizar CTO:', error);
+      toast.error('Erro ao atualizar CTO: ' + (error.message || 'Erro desconhecido'));
+    }
+  };
+
+  const handleDeleteCTO = async (ctoId) => {
+    if (window.confirm("Tem certeza que deseja excluir esta CTO?")) {
+      try {
+        await ctoClient.delete(ctoId);
+        const updatedCTOs = ctos.filter(cto => cto.id !== ctoId);
+        saveCTOs(updatedCTOs);
+        setSelectedCTO(null);
+      } catch (error) {
+        console.error('Erro ao excluir CTO:', error);
+        const updatedCTOs = ctos.filter(cto => cto.id !== ctoId);
+        saveCTOs(updatedCTOs);
+        setSelectedCTO(null);
+      }
     }
   };
 
@@ -364,17 +494,150 @@ export default function FTTHNetworkPage() {
     }
   };
   
-  const handleAddMapElement = (element) => {
+  const handleAddMapElement = async (element) => {
     if (element.type === "CTO") {
-      handleAddCTO(element);
+      try {
+        console.log("Iniciando adição de nova CTO:", element);
+        
+        // Preparar dados para a CTO
+        const ctoData = {
+          name: element.name,
+          latitude: element.position.lat,
+          longitude: element.position.lng,
+          capacity: parseInt(element.capacity) || 16,
+          address: element.address || '',
+          status: 'active',
+          ports: []
+        };
+
+        console.log("Dados preparados para criar CTO:", ctoData);
+        
+        // Criar CTO no backend
+        const newCTO = await ctoClient.create(ctoData);
+        console.log("CTO criada no backend:", newCTO);
+
+        if (!newCTO || !newCTO.id) {
+          throw new Error('Resposta inválida do servidor ao criar CTO');
+      }
+
+        // Criar objeto formatado para o mapa
+        const updatedCTO = {
+          id: newCTO.id,
+          name: newCTO.name,
+          type: "CTO",
+        position: {
+            lat: parseFloat(newCTO.latitude),
+            lng: parseFloat(newCTO.longitude)
+        },
+        properties: {
+            capacity: parseInt(newCTO.capacity),
+            address: newCTO.address,
+            portCount: 0,
+            status: newCTO.status
+          }
+        };
+
+        console.log("Objeto formatado para o mapa:", updatedCTO);
+
+        // Atualizar estados
+        setCTOs(prev => {
+          const updated = [...prev, newCTO];
+          console.log("Atualizando lista de CTOs:", updated);
+          return updated;
+        });
+
+        setNetworkElements(prev => {
+          const updated = [...prev, updatedCTO];
+          console.log("Atualizando elementos do mapa:", updated);
+          return updated;
+        });
+
+        // Salvar no localStorage
+        const storedCTOs = JSON.parse(localStorage.getItem('ctos') || '[]');
+        const updatedStoredCTOs = [...storedCTOs, newCTO];
+        localStorage.setItem('ctos', JSON.stringify(updatedStoredCTOs));
+        
+        console.log("CTO salva com sucesso em todos os estados");
+        toast.success('CTO adicionada com sucesso!');
+        
+        return updatedCTO;
+      } catch (error) {
+        console.error('Erro ao adicionar CTO:', error);
+        toast.error('Erro ao adicionar CTO: ' + (error.message || 'Erro desconhecido'));
+        throw error;
+      }
     }
   };
 
-  const filteredCTOs = ctos.filter(cto => 
-    cto.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cto.properties?.address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cto.id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleAddConnection = async (connectionData) => {
+    try {
+      console.log("Nova conexão:", connectionData);
+      
+      const savedConnection = await ftthConnectionsClient.create(connectionData);
+      
+      if (!savedConnection || !savedConnection.id) {
+        throw new Error('Erro ao salvar conexão no servidor');
+      }
+
+      setFiberPaths(prevPaths => [...prevPaths, savedConnection]);
+      
+      return savedConnection;
+    } catch (error) {
+      console.error('Erro ao salvar conexão:', error);
+      throw error;
+    }
+  };
+
+  const handleUpdateConnection = async (connectionId, connectionData) => {
+    try {
+      await fiberClient.update(connectionId, connectionData);
+      await loadConnections();
+      toast.success('Conexão atualizada com sucesso');
+    } catch (error) {
+      console.error('Erro ao atualizar conexão:', error);
+      toast.error('Erro ao atualizar conexão');
+    }
+  };
+
+  const handleMarkerDrag = async (id, newPos) => {
+    try {
+      console.log("Marcador arrastado:", id, newPos);
+      
+      // Encontrar o elemento pelo ID
+      const element = networkElements.find(el => el.id === id);
+      if (!element) {
+        throw new Error('Elemento não encontrado');
+      }
+
+      // Determinar o tipo do elemento e chamar a função apropriada
+      if (element.type === 'CTO') {
+        await handleUpdateCTO({
+          ...element,
+          position: newPos
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar posição:', error);
+      toast.error(error.message || 'Erro ao atualizar posição');
+    }
+  };
+
+  const filteredCTOs = ctos.filter(cto => {
+    if (!searchTerm) return true;
+    
+    const searchTermLower = searchTerm.toLowerCase().trim();
+    const searchFields = [
+      cto.name,
+      cto.properties?.address,
+      cto.id,
+      cto.properties?.reference,
+      cto.properties?.neighborhood
+    ];
+    
+    return searchFields.some(field => 
+      field?.toLowerCase().includes(searchTermLower)
+    );
+  });
 
   return (
     <div className="space-y-6">
@@ -432,103 +695,36 @@ export default function FTTHNetworkPage() {
                 <Plus className="w-4 h-4 mr-2" />
                 Cadastrar CTO
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => {
-                  const sampleCTOs = [
-                    {
-                      id: `cto-${Date.now()}-1`,
-                      name: "CTO-001",
-                      position: { lat: -23.550520, lng: -46.633308 },
-                      properties: {
-                        capacity: 16,
-                        address: "Av. Paulista, 1000 - São Paulo",
-                        notes: "CTO principal do Centro"
-                      },
-                      ports: [
-                        { number: 1, status: 'active', client_name: "João Silva", client_id: "12345" },
-                        { number: 2, status: 'active', client_name: "Maria Souza", client_id: "23456" },
-                        { number: 3, status: 'blocked', client_name: "Carlos Oliveira", client_id: "34567" }
-                      ],
-                      created: new Date().toISOString()
-                    },
-                    {
-                      id: `cto-${Date.now()}-2`,
-                      name: "CTO-002",
-                      position: { lat: -23.555520, lng: -46.638308 },
-                      properties: {
-                        capacity: 8,
-                        address: "Rua Augusta, 500 - São Paulo",
-                        notes: "CTO secundária"
-                      },
-                      ports: [
-                        { number: 1, status: 'active', client_name: "Ana Pereira", client_id: "45678" }
-                      ],
-                      created: new Date().toISOString()
-                    },
-                    {
-                      id: `cto-${Date.now()}-3`,
-                      name: "CTO-003",
-                      position: { lat: -23.545520, lng: -46.628308 },
-                      properties: {
-                        capacity: 16,
-                        address: "Rua 25 de Março, 100 - São Paulo",
-                        notes: "CTO da região comercial"
-                      },
-                      ports: [
-                        { number: 1, status: 'active', client_name: "José Santos", client_id: "56789" },
-                        { number: 2, status: 'active', client_name: "Empresa ABC", client_id: "67890" },
-                        { number: 3, status: 'active', client_name: "Loja XYZ", client_id: "78901" },
-                        { number: 4, status: 'active', client_name: "Restaurante Delícia", client_id: "89012" }
-                      ],
-                      created: new Date().toISOString()
-                    }
-                  ];
-                  
-                  saveCTOs(sampleCTOs);
-                }}
-              >
-                Adicionar dados de exemplo
-              </Button>
             </div>
           </AlertDescription>
         </Alert>
       )}
 
       {ctos.length > 0 && (
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="map" className="flex items-center gap-2">
-              <MapPin className="w-4 h-4" />
-              Mapa
-            </TabsTrigger>
-            <TabsTrigger value="topology" className="flex items-center gap-2">
-              <Network className="w-4 h-4" />
-              Topologia
-            </TabsTrigger>
-            <TabsTrigger value="list" className="flex items-center gap-2">
-              <Box className="w-4 h-4" />
-              Lista de CTOs
-            </TabsTrigger>
-            <TabsTrigger value="docs" className="flex items-center gap-2">
-              <Info className="w-4 h-4" />
-              Documentação
-            </TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="map">Mapa</TabsTrigger>
+            <TabsTrigger value="list">Lista</TabsTrigger>
+            <TabsTrigger value="topology">Topologia</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="map">
-            <FTTHMap 
+          <TabsContent value="map" className="h-[calc(100vh-200px)]">
+            <FTTHMap
               elements={networkElements}
               fiberPaths={fiberPaths}
               onElementClick={handleMapElementClick}
               onAddElement={handleAddMapElement}
-            />
+              onUpdateElement={handleMarkerDrag}
+              onDeleteElement={handleDeleteCTO}
+              onAddConnection={handleAddConnection}
+              onUpdateConnection={handleUpdateConnection}
+            >
+            </FTTHMap>
           </TabsContent>
           
           <TabsContent value="topology">
             <NetworkTopology 
-              networkData={networkData}
+              networkData={{ nodes: networkElements, links: fiberPaths }}
               onNodeClick={handleNodeClick}
             />
           </TabsContent>

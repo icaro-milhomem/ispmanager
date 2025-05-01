@@ -13,14 +13,31 @@ import { Textarea } from "@/components/ui/textarea";
 import { MapPin, Trash } from "lucide-react";
 
 export default function CTOForm({ cto, onSubmit, onCancel, onDelete }) {
-  const [formData, setFormData] = useState(cto || {
-    name: "",
-    position: { lat: 0, lng: 0 },
-    properties: {
-      capacity: 16,
-      address: "",
-      notes: ""
+  const [formData, setFormData] = useState(() => {
+    if (cto) {
+      return {
+        id: cto.id,
+        name: cto.name || "",
+        position: {
+          lat: typeof cto.latitude === 'number' ? cto.latitude : parseFloat(cto.latitude) || 0,
+          lng: typeof cto.longitude === 'number' ? cto.longitude : parseFloat(cto.longitude) || 0
+        },
+        properties: {
+          capacity: cto.capacity || 16,
+          address: cto.address || "",
+          notes: cto.notes || ""
+        }
+      };
     }
+    return {
+      name: "",
+      position: { lat: 0, lng: 0 },
+      properties: {
+        capacity: 16,
+        address: "",
+        notes: ""
+      }
+    };
   });
   
   const [showLocationError, setShowLocationError] = useState(false);

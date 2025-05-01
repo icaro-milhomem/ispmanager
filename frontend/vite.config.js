@@ -6,7 +6,19 @@ import path from 'path'
 export default defineConfig({
   plugins: [react()],
   server: {
-    allowedHosts: true
+    allowedHosts: true,
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+      port: 5173,
+      clientPort: 5173,
+      timeout: 5000,
+      overlay: true
+    },
+    watch: {
+      usePolling: true,
+      interval: 1000
+    }
   },
   resolve: {
     alias: {
@@ -21,4 +33,12 @@ export default defineConfig({
       },
     },
   },
+  define: {
+    'process.env': {
+      NODE_ENV: process.env.NODE_ENV,
+      VITE_API_URL: process.env.VITE_API_URL || 'http://localhost:3000',
+      VITE_USE_REAL_API_ONLY: process.env.VITE_USE_REAL_API_ONLY || 'true',
+      VITE_DISABLE_FALLBACKS: process.env.VITE_DISABLE_FALLBACKS || 'true'
+    }
+  }
 }) 

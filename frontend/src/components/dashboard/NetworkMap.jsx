@@ -13,7 +13,6 @@ import {
   Router,
   Layers,
   Wifi,
-  Server,
   Radio,
   Monitor,
   Settings,
@@ -26,7 +25,6 @@ const typeIcons = {
   router: Router,
   switch: Layers,
   ont: Wifi,
-  olt: Server,
   radio: Radio,
   servidor: Monitor,
   outro: Settings
@@ -49,10 +47,10 @@ export default function NetworkMap({ equipment }) {
   const organizeEquipment = () => {
     // Criar categorias de equipamentos
     const categories = {
-      core: equipment.filter(e => e.type === 'router' || e.type === 'olt'),
+      core: equipment.filter(e => e.type === 'router'),
       distribution: equipment.filter(e => e.type === 'switch'),
       access: equipment.filter(e => e.type === 'ont' || e.type === 'radio'),
-      other: equipment.filter(e => !['router', 'olt', 'switch', 'ont', 'radio'].includes(e.type))
+      other: equipment.filter(e => !['router', 'switch', 'ont', 'radio'].includes(e.type))
     };
     
     return categories;
@@ -154,7 +152,7 @@ export default function NetworkMap({ equipment }) {
               ))}
             </svg>
             
-            {/* Core Layer (Roteadores, OLTs) */}
+            {/* Core Layer (Roteadores) */}
             <div className="absolute top-16 left-0 right-0 flex justify-center gap-6">
               {categories.core.map((item) => {
                 const IconComponent = typeIcons[item.type] || Settings;
@@ -200,7 +198,7 @@ export default function NetworkMap({ equipment }) {
                     onClick={() => setSelectedNode(item)}
                   >
                     <div 
-                      className="relative w-10 h-10 rounded-lg flex items-center justify-center shadow-md border-2"
+                      className="relative w-10 h-10 rounded-full flex items-center justify-center shadow-md border-2"
                       style={{ 
                         backgroundColor: 'white',
                         borderColor: getStatusColor(item.status)
@@ -208,11 +206,11 @@ export default function NetworkMap({ equipment }) {
                     >
                       <IconComponent className="w-5 h-5 text-gray-700" />
                       <div 
-                        className="absolute bottom-0 right-0 w-2 h-2 rounded-full border-2 border-white"
+                        className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white"
                         style={{ backgroundColor: getStatusColor(item.status) }}
                       ></div>
                     </div>
-                    <div className="text-xs mt-1 text-center">{item.name}</div>
+                    <div className="text-xs font-medium mt-1 text-center">{item.name}</div>
                   </div>
                 );
               })}
@@ -224,10 +222,10 @@ export default function NetworkMap({ equipment }) {
               )}
             </div>
             
-            {/* Access Layer (ONTs, CPEs) */}
-            <div className="absolute top-56 left-0 right-0 flex flex-wrap justify-center gap-4 px-6">
-              {categories.access.slice(0, 8).map((item) => {
-                const IconComponent = typeIcons[item.type] || Wifi;
+            {/* Access Layer (ONTs, Rádios) */}
+            <div className="absolute top-48 left-0 right-0 flex justify-around px-6">
+              {categories.access.map((item) => {
+                const IconComponent = typeIcons[item.type] || Settings;
                 return (
                   <div 
                     key={item.id}
@@ -235,31 +233,22 @@ export default function NetworkMap({ equipment }) {
                     onClick={() => setSelectedNode(item)}
                   >
                     <div 
-                      className="relative w-8 h-8 rounded-md flex items-center justify-center shadow-sm border"
+                      className="relative w-8 h-8 rounded-full flex items-center justify-center shadow-md border-2"
                       style={{ 
                         backgroundColor: 'white',
                         borderColor: getStatusColor(item.status)
                       }}
                     >
-                      <IconComponent className="w-4 h-4 text-gray-600" />
+                      <IconComponent className="w-4 h-4 text-gray-700" />
                       <div 
-                        className="absolute bottom-0 right-0 w-2 h-2 rounded-full border border-white"
+                        className="absolute bottom-0 right-0 w-2 h-2 rounded-full border-2 border-white"
                         style={{ backgroundColor: getStatusColor(item.status) }}
                       ></div>
                     </div>
-                    <div className="text-xs mt-1 text-center truncate w-16">{item.name}</div>
+                    <div className="text-xs font-medium mt-1 text-center">{item.name}</div>
                   </div>
                 );
               })}
-              
-              {categories.access.length > 8 && (
-                <div className="flex flex-col items-center">
-                  <div className="bg-gray-100 w-8 h-8 rounded-md flex items-center justify-center">
-                    <span className="text-xs font-medium">+{categories.access.length - 8}</span>
-                  </div>
-                  <div className="text-xs mt-1">mais</div>
-                </div>
-              )}
               
               {categories.access.length === 0 && (
                 <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
@@ -267,27 +256,9 @@ export default function NetworkMap({ equipment }) {
                 </div>
               )}
             </div>
-            
-            {/* Legend */}
-            <div className="absolute bottom-2 right-2 bg-white p-2 rounded-lg shadow-sm border border-gray-100 flex gap-4">
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <span className="text-xs">Online</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                <span className="text-xs">Offline</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                <span className="text-xs">Manutenção</span>
-              </div>
-            </div>
           </div>
-          
-          {/* Informações do nó selecionado */}
-          {renderNodeInfo()}
         </div>
+        {renderNodeInfo()}
       </CardContent>
     </Card>
   );

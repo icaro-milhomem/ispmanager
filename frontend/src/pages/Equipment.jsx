@@ -60,6 +60,7 @@ export default function EquipmentPage() {
   const [showDetails, setShowDetails] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [selectedType, setSelectedType] = useState("");
 
   useEffect(() => {
     loadData();
@@ -177,18 +178,16 @@ export default function EquipmentPage() {
             </div>
             <div className="flex gap-2">
               <select
-                className="border rounded-md px-3 py-2"
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value)}
+                className="form-select block w-full mt-1"
               >
-                <option value="all">Todos os Tipos</option>
+                <option value="">Todos os tipos</option>
                 <option value="router">Roteadores</option>
                 <option value="switch">Switches</option>
-                <option value="ont">ONTs</option>
-                <option value="olt">OLTs</option>
-                <option value="radio">Rádios</option>
-                <option value="servidor">Servidores</option>
-                <option value="outro">Outros</option>
+                <option value="ap">Access Points</option>
+                <option value="onu">ONUs</option>
+                <option value="server">Servidores</option>
               </select>
             </div>
           </div>

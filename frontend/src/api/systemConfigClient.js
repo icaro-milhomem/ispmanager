@@ -12,7 +12,7 @@ const STORAGE_VERSION = 'v1'; // Versão para controle de mudanças no formato d
 const LAST_UPDATE_KEY = 'system-config-last-update';
 
 // Correta URL da API para system config
-const SYSTEM_CONFIG_API_URL = `${API_BASE_URL}/api/config`;
+const SYSTEM_CONFIG_API_URL = `${API_BASE_URL}/config`;
 
 // Função para registrar logs consistentemente
 const logInfo = (message, data) => {

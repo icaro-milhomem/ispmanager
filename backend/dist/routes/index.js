@@ -28,6 +28,8 @@ const routerIntegrationRoutes_1 = __importDefault(require("./routerIntegrationRo
 const integrationsRoutes_1 = __importDefault(require("./integrationsRoutes"));
 const inventoryItemRoutes_1 = __importDefault(require("./inventoryItemRoutes"));
 const inventoryTransactionRoutes_1 = __importDefault(require("./inventoryTransactionRoutes"));
+const ctoRoutes_1 = __importDefault(require("./ctoRoutes"));
+const ftthConnectionsRoutes_1 = __importDefault(require("./ftthConnectionsRoutes"));
 const auth_1 = require("../middleware/auth");
 // Importações temporariamente comentadas até que os arquivos sejam criados
 // import userRoutes from './userRoutes';
@@ -63,6 +65,8 @@ router.use('/api/router-integrations', auth_1.authenticateJWT, routerIntegration
 router.use('/api/integrations', auth_1.authenticateJWT, integrationsRoutes_1.default);
 router.use('/api/inventory-items', auth_1.authenticateJWT, inventoryItemRoutes_1.default);
 router.use('/api/inventory-transactions', auth_1.authenticateJWT, inventoryTransactionRoutes_1.default);
+router.use('/api/ctos', auth_1.authenticateJWT, ctoRoutes_1.default);
+router.use('/api/ftth/connections', auth_1.authenticateJWT, ftthConnectionsRoutes_1.default);
 // Rota para IP assignments
 router.use('/api/ip-assignments', auth_1.authenticateJWT, (req, res, next) => {
     req.url = '/assignments/all' + (req.url !== '/' ? req.url : '');

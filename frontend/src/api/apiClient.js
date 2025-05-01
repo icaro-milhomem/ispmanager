@@ -38,7 +38,7 @@ export const createEntityClient = (entityPath) => {
         });
         
         const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
-        const url = `${API_BASE_URL}/api/${entityPath}${queryString}`;
+        const url = `${API_BASE_URL}/${entityPath}${queryString}`;
         
         console.log(`[API Client] Fazendo requisição GET para: ${url}`);
         
@@ -131,7 +131,7 @@ export const createEntityClient = (entityPath) => {
     // Obter um item por ID
     get: async (id) => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/${entityPath}/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/${entityPath}/${id}`, {
           method: 'GET',
           headers: getHeaders()
         });
@@ -154,7 +154,7 @@ export const createEntityClient = (entityPath) => {
           console.log(`Enviando requisição de criação para ${entityPath}:`, data);
         }
         
-        const response = await fetch(`${API_BASE_URL}/api/${entityPath}`, {
+        const response = await fetch(`${API_BASE_URL}/${entityPath}`, {
           method: 'POST',
           headers: getHeaders(),
           body: JSON.stringify(data)
@@ -229,7 +229,7 @@ export const createEntityClient = (entityPath) => {
           throw new Error(`Cannot update ${entityPath} with invalid ID: ${id}`);
         }
         
-        const response = await fetch(`${API_BASE_URL}/api/${entityPath}/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/${entityPath}/${id}`, {
           method: 'PUT',
           headers: getHeaders(),
           body: JSON.stringify(data)
@@ -302,7 +302,7 @@ export const createEntityClient = (entityPath) => {
         }
         
         console.log(`Enviando requisição DELETE para ${entityPath}/${id}`);
-        const response = await fetch(`${API_BASE_URL}/api/${entityPath}/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/${entityPath}/${id}`, {
           method: 'DELETE',
           headers: getHeaders()
         });
@@ -321,7 +321,21 @@ export const createEntityClient = (entityPath) => {
           throw error;
         }
         
-        return await response.json();
+        // Se a resposta for 204 No Content, retornar true
+        if (response.status === 204) {
+          console.log(`[API Client] Operação DELETE bem sucedida para ${entityPath}/${id}`);
+          return true;
+        }
+        
+        // Para outras respostas, tentar extrair o JSON
+        try {
+          const data = await response.json();
+          console.log(`[API Client] Resposta JSON recebida para ${entityPath}/${id}:`, data);
+          return data;
+        } catch (parseError) {
+          console.warn(`[API Client] Não foi possível parsear a resposta JSON para ${entityPath}/${id}:`, parseError);
+          return null;
+        }
       } catch (error) {
         console.error(`Error in delete ${entityPath}:`, error);
         throw error;
@@ -343,7 +357,7 @@ export const authClient = {
     try {
       console.log(`[Auth] Tentando fazer login com email: ${email}`);
       
-      const loginUrl = `${API_BASE_URL}/api/auth/login`;
+      const loginUrl = `${API_BASE_URL}/auth/login`;
       console.log(`[Auth] URL de login: ${loginUrl}`);
       
       const loginData = { email, password };

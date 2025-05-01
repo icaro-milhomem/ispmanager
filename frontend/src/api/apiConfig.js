@@ -8,7 +8,7 @@ export const USE_REAL_API_ONLY = import.meta.env.VITE_USE_REAL_API_ONLY === 'tru
 export const DISABLE_FALLBACKS = import.meta.env.VITE_DISABLE_FALLBACKS === 'true' || true;
 
 // URL base da API
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://api.econect.eco.br/api';
+export const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api';
 
 // Tempo máximo de espera para requisições (em ms)
 export const API_TIMEOUT = 30000;
@@ -17,7 +17,7 @@ export const API_TIMEOUT = 30000;
 export const API_VERSION = 'v1';
 
 // Log de requisições habilitado
-export const ENABLE_REQUEST_LOGGING = import.meta.env.NODE_ENV === 'development';
+export const ENABLE_REQUEST_LOGGING = import.meta.env.DEV || false;
 
 // Configuração de cabeçalhos padrão
 export const getDefaultHeaders = () => {

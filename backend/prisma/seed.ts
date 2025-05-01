@@ -6,6 +6,21 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Iniciando criação de dados simulados...');
   
+  // Criar usuário admin
+  const hashedPassword = await hashPassword('admin123');
+  await prisma.user.upsert({
+    where: { email: 'admin@ispmanager.com' },
+    update: {},
+    create: {
+      name: 'Administrador',
+      email: 'admin@ispmanager.com',
+      password: hashedPassword,
+      role: 'ADMIN'
+    }
+  });
+  
+  console.log('Usuário admin criado');
+  
   // Criar planos
   const basicPlan = await prisma.plan.upsert({
     where: { name: 'Básico' },

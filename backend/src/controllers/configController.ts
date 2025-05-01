@@ -119,31 +119,25 @@ export const updateSystemConfig = async (req: Request, res: Response) => {
       }
     });
 
-    // Remove campos sensíveis antes de retornar
-    const publicConfig = {
-      id: updatedConfig.id,
-      company_name: updatedConfig.company_name,
-      company_logo_url: updatedConfig.company_logo_url,
-      company_email: updatedConfig.company_email,
-      company_address: updatedConfig.company_address,
-      company_phone: updatedConfig.company_phone,
-      company_website: updatedConfig.company_website,
-      admin_email: updatedConfig.admin_email,
-      has_smtp: Boolean(updatedConfig.smtp_host && updatedConfig.smtp_port),
-      login_background_color: updatedConfig.login_background_color,
-      login_text_color: updatedConfig.login_text_color,
-      login_button_color: updatedConfig.login_button_color
-    };
-
-    return res.json({ 
+    return res.json({
       message: 'Configurações do sistema atualizadas com sucesso',
-      config: publicConfig
+      config: {
+        id: updatedConfig.id,
+        company_name: updatedConfig.company_name,
+        company_logo_url: updatedConfig.company_logo_url,
+        admin_email: updatedConfig.admin_email,
+        company_email: updatedConfig.company_email,
+        company_address: updatedConfig.company_address,
+        company_phone: updatedConfig.company_phone,
+        company_website: updatedConfig.company_website,
+        login_background_color: updatedConfig.login_background_color,
+        login_text_color: updatedConfig.login_text_color,
+        login_button_color: updatedConfig.login_button_color
+      }
     });
+
   } catch (error) {
     console.error('Erro ao atualizar configurações do sistema:', error);
-    return res.status(500).json({ 
-      message: 'Erro interno do servidor', 
-      error: error instanceof Error ? error.message : 'Erro desconhecido' 
-    });
+    return res.status(500).json({ message: 'Erro interno do servidor' });
   }
 }; 

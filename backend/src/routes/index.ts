@@ -23,6 +23,11 @@ import routerIntegrationRoutes from './routerIntegrationRoutes';
 import integrationsRoutes from './integrationsRoutes';
 import inventoryItemRoutes from './inventoryItemRoutes';
 import inventoryTransactionRoutes from './inventoryTransactionRoutes';
+import ctoRoutes from './ctoRoutes';
+import ftthConnectionsRoutes from './ftthConnectionsRoutes';
+import fiberRoutes from './fiberRoutes';
+import splitterRoutes from './splitterRoutes';
+import coeRoutes from './coeRoutes';
 import { authenticateJWT } from '../middleware/auth';
 
 // Importações temporariamente comentadas até que os arquivos sejam criados
@@ -63,6 +68,13 @@ router.use('/api/router-integrations', authenticateJWT, routerIntegrationRoutes)
 router.use('/api/integrations', authenticateJWT, integrationsRoutes);
 router.use('/api/inventory-items', authenticateJWT, inventoryItemRoutes);
 router.use('/api/inventory-transactions', authenticateJWT, inventoryTransactionRoutes);
+router.use('/api/ctos', authenticateJWT, ctoRoutes);
+router.use('/api/ftth/connections', authenticateJWT, ftthConnectionsRoutes);
+
+// Rotas FTTH
+router.use('/api/fibers', authenticateJWT, fiberRoutes);
+router.use('/api/splitters', authenticateJWT, splitterRoutes);
+router.use('/api/coes', authenticateJWT, coeRoutes);
 
 // Rota para IP assignments
 router.use('/api/ip-assignments', authenticateJWT, (req, res, next) => {

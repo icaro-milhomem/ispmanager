@@ -1,6 +1,7 @@
 import './App.css'
 import { BrowserRouter, Routes, Route } from "react-router-dom"
 import React, { useState, useEffect } from 'react';
+import { Toaster } from 'react-hot-toast';
 
 // Importação das páginas principais
 import SystemLogin from "./pages/SystemLogin"
@@ -70,6 +71,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <Toaster position="top-right" />
       <Routes>
         <Route path="/systemlogin" element={<SystemLogin />} />
         <Route path="/SystemLogin" element={<SystemLogin />} />

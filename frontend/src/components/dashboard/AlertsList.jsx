@@ -17,14 +17,6 @@ export default function AlertsList() {
     },
     {
       id: 2,
-      type: 'warning',
-      message: 'Tráfego elevado na OLT-02 (85% da capacidade)',
-      timestamp: '2023-05-15T17:45:00Z',
-      affectedCustomers: 0,
-      icon: AlertCircle
-    },
-    {
-      id: 3,
       type: 'info',
       message: '5 faturas vencidas nos últimos 2 dias',
       timestamp: '2023-05-15T09:15:00Z',
@@ -32,7 +24,7 @@ export default function AlertsList() {
       icon: BadgeAlert
     },
     {
-      id: 4,
+      id: 3,
       type: 'success',
       message: 'Manutenção programada concluída com sucesso',
       timestamp: '2023-05-14T23:00:00Z',
