@@ -6,14 +6,15 @@ Sistema de gerenciamento para provedores de internet, com recursos para gestão 
 
 O projeto está dividido em duas partes principais:
 
-- **Frontend**: Interface web desenvolvida em React.js
+- **Frontend**: Interface web desenvolvida em React.js com Vite
 - **Backend**: API RESTful desenvolvida em Node.js com Express e TypeScript
 
 ## Requisitos
 
-- Node.js 16+
-- PostgreSQL 12+
-- npm ou yarn
+- Node.js 18+
+- PostgreSQL 14+
+- npm 9+ ou yarn 1.22+
+- Git
 
 ## Configuração
 
@@ -83,12 +84,40 @@ Após executar o seed, você terá acesso ao sistema com o seguinte usuário adm
 
 ## Funcionalidades
 
-- Gestão de Clientes
-- Gestão de Planos de Internet
-- Cobrança e Faturamento
-- Tickets de Suporte
-- Contratos
-- Cadastro de Equipamentos e Nós de Rede
+### Gestão de Clientes
+- Cadastro e gerenciamento de clientes
+- Histórico de atendimentos
+- Documentos e contratos
+- Gestão de endereços
+
+### Gestão de Planos de Internet
+- Criação e personalização de planos
+- Controle de velocidade e limites
+- Gestão de preços e promoções
+
+### Cobrança e Faturamento
+- Geração automática de faturas
+- Integração com gateways de pagamento
+- Histórico de pagamentos
+- Relatórios financeiros
+
+### Suporte Técnico
+- Sistema de tickets
+- Atendimento em tempo real
+- Histórico de atendimentos
+- Base de conhecimento
+
+### Rede FTTH
+- Mapeamento de rede óptica
+- Gestão de CTOs e nós de rede
+- Rastreamento de fibras
+- Monitoramento de equipamentos
+
+### Contratos
+- Geração automática de contratos
+- Assinatura digital
+- Histórico de alterações
+- Renovação automática
 
 ## Tecnologias Utilizadas
 
@@ -98,6 +127,8 @@ Após executar o seed, você terá acesso ao sistema com o seguinte usuário adm
 - Prisma ORM
 - PostgreSQL
 - JWT para autenticação
+- Socket.io para comunicação em tempo real
+- Swagger para documentação da API
 
 ### Frontend
 - React.js
@@ -106,6 +137,10 @@ Após executar o seed, você terá acesso ao sistema com o seguinte usuário adm
 - React Router
 - React Query
 - Axios
+- React Hook Form
+- Yup para validação
+- Leaflet para mapas
+- Socket.io-client
 
 ## Licença
 
